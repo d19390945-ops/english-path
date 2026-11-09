@@ -62,6 +62,7 @@ const I = {
   video: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.5l5-3v9l-5-3z"/>',
   scheme: '<path d="M4 6h6v5H4zM14 13h6v5h-6z"/><path d="M10 8.5h2a2 2 0 0 1 2 2v5"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
 };
 const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n] || ''}</svg>`;
 
@@ -129,13 +130,13 @@ async function hashPass(nick, pass) {
 function newProfile(nick, pass, grade, goal) {
   return {
     nick, pass, grade, goal: { ...goal, start: today() }, created: Date.now(),
-    xp: 0, streak: { n: 0, last: -1, best: 0 }, days: {}, lessons: {}, units: {}, grades: {}, words: {}, items: {}, ach: {}, topics: {},
+    xp: 0, streak: { n: 0, last: -1, best: 0 }, days: {}, lessons: {}, units: {}, grades: {}, words: {}, items: {}, ach: {}, topics: {}, notes: {},
     stats: { lessons: 0, perfect: 0, tests: 0, ace: 0, extern: 0, reviews: 0, goalDays: 0, practice: 0 },
     settings: { sound: true, voice: '' },
   };
 }
 function migrate(p) { // профили из первой версии
-  p.items = p.items || {}; p.topics = p.topics || {};
+  p.items = p.items || {}; p.topics = p.topics || {}; p.notes = p.notes || {};
   if (p.gaps) { for (const t of Object.keys(p.gaps)) p.items[t] = p.gaps[t]; delete p.gaps; }
   if (p.goal && p.goal.target === 'g5') p.goal.target = 'grade';
   p.stats.practice = p.stats.practice || 0;
@@ -801,13 +802,15 @@ function viewMe() {
   const lessons = Object.keys(P.lessons).length, pi = planInfo();
   return `
   <div class="page">
-    <div class="me-head"><span class="ava big">${esc(P.nick[0].toUpperCase())}</span><div><h1 class="page-h">${esc(P.nick)}</h1><p class="muted">${P.grade < 12 ? P.grade + ' класс' : 'Не в школе'}, с ${new Date(P.created).toLocaleDateString('ru-RU')}</p></div><button class="btn btn-ghost btn-sm" data-act="logout">${icon('door')}Сменить</button></div>
+    <div class="me-head" id="mehead">${meHeadHTML()}</div>
     <div class="stat-row">
       <div class="stat"><b>${P.xp}</b><span>опыт</span></div>
       <div class="stat"><b>${P.streak.best}</b><span>лучшая серия</span></div>
       <div class="stat"><b>${lessons}</b><span>${plural(lessons, 'урок', 'урока', 'уроков')}</span></div>
       <div class="stat"><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
     </div>
+    <h2 class="h-sub">Календарь занятий</h2>
+    <section class="cal" id="cal">${calHTML()}</section>
     <h2 class="h-sub">Классы</h2>
     <div class="grade-list">${ALL_GRADES.map(g => `<div class="gl-row"><b>${g}</b><div class="gl-bar"><i style="transform:scaleX(${gradeProgress(g)})"></i></div><span>${gradePassed(g) ? `сдан, ${P.grades[g].best}%` : gradeOpen(g) ? Math.round(gradeProgress(g) * 100) + '%' : 'закрыт'}</span></div>`).join('')}</div>
     <h2 class="h-sub">Цель</h2>
@@ -833,7 +836,143 @@ function viewMe() {
     </div>
   </div>`;
 }
+/* ---- имя ---- */
+function meHeadHTML(edit = false) {
+  const sub = `${P.grade < 12 ? P.grade + ' класс' : 'Не в школе'}, с ${new Date(P.created).toLocaleDateString('ru-RU')}`;
+  if (!edit) return `<span class="ava big">${esc(P.nick[0].toUpperCase())}</span>
+    <div class="me-name"><h1 class="page-h">${esc(P.nick)}</h1><p class="muted">${sub}</p></div>
+    <div class="me-btns"><button class="btn btn-ghost btn-sm" data-me="rename">${icon('pencil')}Изменить имя</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon('door')}Выйти</button></div>`;
+  return `<span class="ava big">${esc(P.nick[0].toUpperCase())}</span>
+    <form class="rename" id="rename" novalidate>
+      <label class="field"><span>Новое имя</span><input name="nick" maxlength="20" autocomplete="off" value="${esc(P.nick)}"></label>
+      ${P.pass ? '<label class="field"><span>Текущий пароль — для подтверждения</span><input name="pass" type="password" autocomplete="current-password"></label>' : ''}
+      <p class="err" id="err"></p>
+      <div class="row"><button class="btn btn-sm">Сохранить</button><button type="button" class="btn btn-ghost btn-sm" data-me="cancel">Отмена</button></div>
+    </form>`;
+}
+async function renameTo(nick, pass) {
+  nick = nick.trim();
+  if (nick.length < 2) return 'Имя — минимум 2 символа.';
+  if (nick === P.nick) return null;
+  if (DB.profiles[nick]) return 'Такое имя уже есть на этом устройстве.';
+  if (P.pass) {
+    if (await hashPass(P.nick, pass || '') !== P.pass) return 'Пароль не подходит.';
+    P.pass = await hashPass(nick, pass); // пароль привязан к имени — пересчитываем
+  }
+  delete DB.profiles[P.nick]; P.nick = nick; DB.profiles[nick] = P; DB.current = nick; save();
+  return null;
+}
+
+/* ---- календарь и заметки ---- */
+const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const dayNumOf = (y, m, d) => Math.floor(Date.UTC(y, m, d) / 86400000);
+let cal = null;
+function calInit() { if (!cal) { const n = new Date(); cal = { y: n.getFullYear(), m: n.getMonth(), sel: today() }; } }
+const dayMin = d => Math.round((P.days[d] && P.days[d].min) || 0);
+function dayLevel(d) { const m = dayMin(d), g = P.goal.minutes; return !m ? 0 : m < g ? 1 : m < g * 1.5 ? 2 : 3; }
+const LEVEL_TXT = ['Занятий не было', 'Мало', 'Норма', 'Больше нормы'];
+function dayLog(d) {
+  const r = P.days[d];
+  if (r && r.log && r.log.length) return r.log;
+  return [...LESSONS.values()].filter(l => P.lessons[l.key] && P.lessons[l.key].at === d).map(l => `Урок «${l.t}»`);
+}
+function calHTML() {
+  calInit();
+  const { y, m } = cal, first = (new Date(y, m, 1).getDay() + 6) % 7, n = new Date(y, m + 1, 0).getDate(), t = today();
+  let cells = '';
+  for (let i = 0; i < first; i++) cells += '<span class="cd-empty"></span>';
+  let active = 0, mins = 0, norm = 0;
+  for (let d = 1; d <= n; d++) {
+    const dn = dayNumOf(y, m, d), lv = dayLevel(dn), mm = dayMin(dn), note = !!(P.notes[dn] || '').trim();
+    if (mm) { active++; mins += mm; if (lv >= 2) norm++; }
+    cells += `<button class="cd lv${lv} ${dn === t ? 'today' : ''} ${dn === cal.sel ? 'sel' : ''} ${dn > t ? 'future' : ''} ${note ? 'has-note' : ''}" data-day="${dn}" aria-label="${d} ${MONTHS[m].toLowerCase()}: ${LEVEL_TXT[lv]}${mm ? ', ' + mm + ' мин' : ''}${note ? ', есть заметка' : ''}">
+      <span class="cd-n">${d}</span>${mm ? `<small>${mm}′</small>` : ''}${note ? '<i class="cd-note"></i>' : ''}</button>`;
+  }
+  const isNow = y === new Date().getFullYear() && m === new Date().getMonth();
+  return `
+  <div class="cal-grid-wrap">
+    <div class="cal-head">
+      <button class="icon-btn" data-cal="prev" aria-label="Предыдущий месяц">${icon('back')}</button>
+      <h3>${MONTHS[m]} ${y}</h3>
+      <button class="icon-btn flip" data-cal="next" aria-label="Следующий месяц">${icon('back')}</button>
+      ${isNow ? '' : '<button class="btn btn-ghost btn-sm" data-cal="today">Сегодня</button>'}
+    </div>
+    <p class="cal-sum">${active ? `${active} ${plural(active, 'день', 'дня', 'дней')} занятий, ${mins} мин, норма — ${norm} ${plural(norm, 'раз', 'раза', 'раз')}` : 'В этом месяце занятий пока нет'}</p>
+    <div class="cal-grid">${WEEKDAYS.map(w => `<span class="cd-w">${w}</span>`).join('')}${cells}</div>
+    <div class="cal-legend">
+      <span><i class="lg lv0"></i>не занимался</span><span><i class="lg lv1"></i>мало</span><span><i class="lg lv2"></i>норма</span><span><i class="lg lv3"></i>больше нормы</span><span><i class="lg-note"></i>заметка</span>
+    </div>
+  </div>
+  <div class="cal-day" id="calday">${calDayHTML()}</div>`;
+}
+function calDayHTML() {
+  const d = cal.sel, dt = dayToDate(d), t = today(), lv = dayLevel(d), mm = dayMin(d), log = dayLog(d), xp = (P.days[d] && P.days[d].xp) || 0;
+  const wd = dt.toLocaleDateString('ru-RU', { weekday: 'long' });
+  const status = d > t ? 'Этот день ещё впереди' : lv === 0 ? 'Занятий не было' : `${LEVEL_TXT[lv]}: ${mm} из ${P.goal.minutes} мин`;
+  return `
+    <p class="cd-date">${fmtDate(d)}, ${wd}${d === t ? ' — сегодня' : ''}</p>
+    <p class="cd-status"><i class="lg lv${lv}"></i>${status}${xp ? `<span class="muted">+${xp} опыта</span>` : ''}</p>
+    ${log.length ? `<ul class="cd-log">${log.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    <label class="cd-notes"><span>Заметка${d > t ? ' (план)' : ''}</span>
+      <textarea id="note" rows="5" placeholder="${d > t ? 'Что хочешь сделать в этот день…' : 'Что получилось, что было трудно, что повторить…'}">${esc(P.notes[d] || '')}</textarea></label>
+    <p class="cd-saved muted small" id="saved">${P.notes[d] ? 'Сохранено' : 'Сохраняется само, пока пишешь'}</p>`;
+}
+function bindCal() {
+  const box = $('#cal'); if (!box) return;
+  box.addEventListener('click', e => {
+    const nav = e.target.closest('[data-cal]');
+    if (nav) {
+      const a = nav.dataset.cal;
+      if (a === 'today') { const n = new Date(); cal.y = n.getFullYear(); cal.m = n.getMonth(); cal.sel = today(); }
+      else { cal.m += a === 'next' ? 1 : -1; if (cal.m < 0) { cal.m = 11; cal.y--; } if (cal.m > 11) { cal.m = 0; cal.y++; } }
+      box.innerHTML = calHTML(); return;
+    }
+    const day = e.target.closest('[data-day]');
+    if (day) {
+      cal.sel = +day.dataset.day;
+      $$('.cd', box).forEach(x => x.classList.toggle('sel', x === day));
+      $('#calday').innerHTML = calDayHTML();
+    }
+  });
+  let tm = null;
+  box.addEventListener('input', e => {
+    if (e.target.id !== 'note') return;
+    const d = cal.sel, v = e.target.value;
+    $('#saved').textContent = 'Сохраняю…';
+    clearTimeout(tm);
+    tm = setTimeout(() => {
+      if (v.trim()) P.notes[d] = v; else delete P.notes[d];
+      save();
+      $('#saved').textContent = 'Сохранено';
+      const cell = $(`.cd[data-day="${d}"]`, box);
+      if (cell) {
+        const has = !!v.trim(), mark = $('.cd-note', cell);
+        cell.classList.toggle('has-note', has);
+        if (has && !mark) cell.insertAdjacentHTML('beforeend', '<i class="cd-note"></i>');
+        if (!has && mark) mark.remove();
+      }
+    }, 350);
+  });
+}
+
 function bindMe() {
+  bindCal();
+  const head = $('#mehead');
+  head.addEventListener('click', e => {
+    const b = e.target.closest('[data-me]'); if (!b) return;
+    head.innerHTML = meHeadHTML(b.dataset.me === 'rename');
+    const f = $('#rename', head);
+    if (f) {
+      f.nick.focus(); f.nick.select();
+      f.addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const err = await renameTo(f.nick.value, f.pass && f.pass.value);
+        if (err) { $('#err', head).textContent = err; return; }
+        toast(`Имя изменено: ${P.nick}`); render();
+      });
+    }
+  });
   const v = $('#voice');
   v && v.addEventListener('change', () => { P.settings.voice = v.value; chooseVoice(); save(); });
   $('#snd').addEventListener('change', e => { P.settings.sound = e.target.checked; save(); });
@@ -870,7 +1009,7 @@ document.addEventListener('click', e => {
   const act = a.dataset.act;
   if (act === 'next') { const s = nextStep(); if (!s) return; if (s.kind === 'lesson') startLesson(s.l); else if (s.kind === 'test') startTest(s.u); else startFinal(s.g); }
   if (act === 'review') startReview();
-  if (act === 'logout') { P = null; DB.current = null; save(); onb = null; viewGrade = null; app.innerHTML = ''; location.hash = ''; render(); }
+  if (act === 'logout') { P = null; DB.current = null; save(); onb = null; viewGrade = null; cal = null; app.innerHTML = ''; location.hash = ''; render(); }
   if (act === 'export') {
     const blob = new Blob([JSON.stringify(P, null, 1)], { type: 'application/json' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `английский-путь-${P.nick}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 2000);
@@ -1159,6 +1298,12 @@ function finish() {
     sub = passed ? `Результат ${acc}%.` : `Результат ${acc}%, нужно 80%. Разбери ошибки и попробуй снова — или пройди уроки.`;
   }
   P.xp += xp; d.xp += xp;
+  // дневник для календаря
+  const logLine = S.mode === 'lesson' ? `Урок «${S.l.t}» — ${acc}%`
+    : S.mode === 'test' ? `Тест модуля «${S.u.title}» — ${acc}%${passed ? ', сдан' : ''}`
+    : S.mode === 'final' ? `Итоговая ${S.g} класса — ${acc}%${passed ? ', сдана' : ''}`
+    : S.mode === 'practice' ? `Тема «${S.topic.t}» — ${acc}%` : 'Повторение';
+  (d.log = d.log || []).push(logLine);
   const fresh = checkAch(); save();
   const st = nextStep();
   swapStage(`

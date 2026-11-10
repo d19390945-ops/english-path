@@ -63,6 +63,7 @@ const I = {
   scheme: '<path d="M4 6h6v5H4zM14 13h6v5h-6z"/><path d="M10 8.5h2a2 2 0 0 1 2 2v5"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
   pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  cloud: '<path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.3 9.6 4.5 4.5 0 0 0 7 18.5z"/>',
 };
 const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n] || ''}</svg>`;
 
@@ -121,7 +122,132 @@ const itemByText = (() => {
 const LS_KEY = 'englishpath.v1';
 let DB = (() => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || { profiles: {}, current: null }; } catch { return { profiles: {}, current: null }; } })();
 let P = null;
-function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); } catch { /* приватный режим */ } }
+function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); } catch { /* приватный режим */ } if (P && P.cloud) cloudPush(); }
+
+/* ================= облако (Supabase) ================= */
+// Публичный ключ: его можно держать в коде, данные защищены правилами доступа в базе (каждый видит только свою строку).
+const CLOUD = { url: 'https://nuglrrzqvzjgpkojlktd.supabase.co', key: 'sb_publishable_Xi_HssgWTngscyqcmI1tAg_rGz1E1JJ' };
+let sb = null;
+try { if (window.supabase) sb = window.supabase.createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'englishpath.auth' } }); } catch { sb = null; }
+const DEVICE = (() => { try { let d = localStorage.getItem('englishpath.device'); if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem('englishpath.device', d); } return d; } catch { return 'dev'; } })();
+let cloudState = 'off'; // off | sync | ok | err
+function setCloud(s) {
+  cloudState = s;
+  const el = $('#cloudchip'); if (el) el.outerHTML = cloudChip();
+}
+function cloudChip() {
+  if (!P || !P.cloud) return '<span id="cloudchip"></span>';
+  const t = { sync: 'Сохраняю в облако…', ok: 'Сохранено в облаке', err: 'Нет связи с облаком — сохранено на устройстве', off: 'Облако' }[cloudState];
+  return `<span id="cloudchip" class="chip cloud-${cloudState}" title="${t}">${icon('cloud')}<span class="cloud-t">${cloudState === 'ok' ? 'в облаке' : cloudState === 'sync' ? 'сохраняю' : cloudState === 'err' ? 'офлайн' : ''}</span></span>`;
+}
+async function loginEmail(nick) {
+  try { const { data } = await sb.rpc('login_email', { p_nick: nick.trim() }); return data || null; } catch { return null; }
+}
+async function makeEmail(nick) {
+  const h = await hashPass('cloud', nick.trim().toLowerCase());
+  return `u${h.slice(0, 32)}@englishpath.app`;
+}
+async function cloudUid() { try { const { data } = await sb.auth.getSession(); return data.session ? data.session.user.id : null; } catch { return null; } }
+const cloudErr = e => {
+  const m = String((e && e.message) || e || '');
+  if (/invalid login/i.test(m)) return 'Неверный ник или пароль.';
+  if (/at least 6|password should/i.test(m)) return 'Пароль — минимум 6 символов.';
+  if (/fetch|network|failed/i.test(m)) return 'Нет связи с облаком. Проверь интернет.';
+  return 'Облако ответило ошибкой: ' + m;
+};
+// новый облачный аккаунт для профиля P
+async function cloudRegister(nick, pass) {
+  if (!sb) return 'Облако недоступно (нет интернета).';
+  if (pass.length < 6) return 'Пароль — минимум 6 символов.';
+  if (await loginEmail(nick)) return 'Такой ник уже занят в облаке. Выбери другой.';
+  const { data, error } = await sb.auth.signUp({ email: await makeEmail(nick), password: pass });
+  if (error) return cloudErr(error);
+  if (!data.session) return 'Облако требует подтверждение почты — сообщи репетитору.';
+  P.cloud = { uid: data.user.id }; cloudReady = true;
+  const r = await pushNow();
+  return r;
+}
+async function cloudLogin(nick, pass) {
+  if (!sb) return { error: 'Облако недоступно (нет интернета).' };
+  const email = (await loginEmail(nick)) || await makeEmail(nick);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) return { error: cloudErr(error) };
+  const { data: row, error: e2 } = await sb.from('progress').select('*').eq('user_id', data.user.id).maybeSingle();
+  if (e2) return { error: cloudErr(e2) };
+  return { uid: data.user.id, row };
+}
+let pushT = null, cloudReady = false; // отправляем только после того, как скачали свежую версию
+function cloudPush() {
+  if (!sb || !P || !P.cloud || !cloudReady) return;
+  clearTimeout(pushT); setCloud('sync');
+  pushT = setTimeout(() => pushNow(), 1200);
+}
+async function pushNow() {
+  if (!sb || !P || !P.cloud) return null;
+  clearTimeout(pushT);
+  const me = P;
+  try {
+    if (await cloudUid() !== me.cloud.uid) { setCloud('err'); return 'Нужно войти заново, чтобы сохранять в облако.'; }
+    const { error } = await sb.from('progress').upsert({ user_id: me.cloud.uid, nick: me.nick, data: me, updated_at: new Date().toISOString() });
+    if (error) { setCloud('err'); return /duplicate|unique/i.test(error.message) ? 'Такой ник уже занят в облаке.' : cloudErr(error); }
+    setCloud('ok'); return null;
+  } catch (e) { setCloud('err'); return cloudErr(e); }
+}
+async function cloudPull() {
+  if (!sb || !P || !P.cloud || S) return;
+  try {
+    if (await cloudUid() !== P.cloud.uid) { setCloud('err'); return; }
+    const { data: row, error } = await sb.from('progress').select('*').eq('user_id', P.cloud.uid).maybeSingle();
+    if (error) { setCloud('err'); return; }
+    cloudReady = true;
+    if (!row || !row.data) return pushNow();
+    const before = JSON.stringify(P);
+    const merged = mergeP(P, row.data);
+    if (row.nick && row.nick !== merged.nick) { delete DB.profiles[merged.nick]; merged.nick = row.nick; DB.current = row.nick; }
+    Object.keys(P).forEach(k => delete P[k]); Object.assign(P, merged); DB.profiles[P.nick] = P;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); } catch { /* */ }
+    if (JSON.stringify(P) !== before) { render(); }
+    if (JSON.stringify(P) !== JSON.stringify(row.data)) await pushNow(); else setCloud('ok');
+  } catch { setCloud('err'); }
+}
+// объединение прогресса с двух устройств: ничего не теряется
+function mergeP(a, b) {
+  const out = JSON.parse(JSON.stringify(a)); b = migrate(JSON.parse(JSON.stringify(b)));
+  const mo = (x = {}, y = {}, f) => { const r = { ...x }; for (const k in y) r[k] = k in r ? f(r[k], y[k]) : y[k]; return r; };
+  const mx = (p, q) => Math.max(p || 0, q || 0);
+  out.lessons = mo(out.lessons, b.lessons, (x, y) => ({ at: mx(x.at, y.at), acc: mx(x.acc, y.acc), n: mx(x.n, y.n) }));
+  const pass = (x, y) => ({ best: mx(x.best, y.best), passed: !!(x.passed || y.passed), at: mx(x.at, y.at) });
+  out.units = mo(out.units, b.units, pass); out.grades = mo(out.grades, b.grades, pass);
+  out.words = mo(out.words, b.words, (x, y) => (x.s !== y.s ? (x.s > y.s ? x : y) : (x.due >= y.due ? x : y)));
+  out.items = mo(out.items, b.items, (x, y) => (x.due >= y.due ? x : y));
+  out.ach = mo(out.ach, b.ach, (x, y) => Math.min(x, y));
+  out.topics = mo(out.topics, b.topics, mx);
+  out.stats = mo(out.stats, b.stats, mx);
+  out.xpDev = mo(out.xpDev, b.xpDev, mx);
+  out.days = mo(out.days, b.days, (x, y) => {
+    const dev = mo(x.dev, y.dev, (p, q) => ({ min: mx(p.min, q.min), xp: mx(p.xp, q.xp) }));
+    const r = { dev, log: uniq([...(x.log || []), ...(y.log || [])]) };
+    const ds = Object.values(dev);
+    r.min = ds.length ? ds.reduce((s, v) => s + v.min, 0) : mx(x.min, y.min);
+    r.xp = ds.length ? ds.reduce((s, v) => s + v.xp, 0) : mx(x.xp, y.xp);
+    return r;
+  });
+  const keys = uniq([...Object.keys(out.notes || {}), ...Object.keys(b.notes || {})]);
+  const notes = {}, notesAt = {};
+  for (const k of keys) {
+    const ta = (a.notesAt || {})[k] || 0, tb = (b.notesAt || {})[k] || 0;
+    const pick = tb > ta ? b : a;
+    notes[k] = (pick.notes || {})[k] ?? (a.notes || {})[k] ?? (b.notes || {})[k] ?? ''; notesAt[k] = Math.max(ta, tb);
+  }
+  out.notes = notes; out.notesAt = notesAt;
+  const sa = a.streak || {}, sbk = b.streak || {};
+  out.streak = { ...(mx(sa.last, 0) >= mx(sbk.last, 0) ? sa : sbk), best: mx(sa.best, sbk.best) };
+  if ((b.goalAt || 0) > (a.goalAt || 0)) { out.goal = b.goal; out.goalAt = b.goalAt; }
+  out.xp = Object.values(out.xpDev || {}).reduce((s, v) => s + v, 0);
+  out.cloud = a.cloud || b.cloud;
+  return out;
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); });
 async function hashPass(nick, pass) {
   const data = new TextEncoder().encode('ep:' + nick.toLowerCase() + ':' + pass);
   try { const buf = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''); }
@@ -130,13 +256,15 @@ async function hashPass(nick, pass) {
 function newProfile(nick, pass, grade, goal) {
   return {
     nick, pass, grade, goal: { ...goal, start: today() }, created: Date.now(),
-    xp: 0, streak: { n: 0, last: -1, best: 0 }, days: {}, lessons: {}, units: {}, grades: {}, words: {}, items: {}, ach: {}, topics: {}, notes: {},
+    xp: 0, streak: { n: 0, last: -1, best: 0 }, days: {}, lessons: {}, units: {}, grades: {}, words: {}, items: {}, ach: {}, topics: {}, notes: {}, notesAt: {}, xpDev: {},
     stats: { lessons: 0, perfect: 0, tests: 0, ace: 0, extern: 0, reviews: 0, goalDays: 0, practice: 0 },
     settings: { sound: true, voice: '' },
   };
 }
 function migrate(p) { // профили из первой версии
-  p.items = p.items || {}; p.topics = p.topics || {}; p.notes = p.notes || {};
+  p.items = p.items || {}; p.topics = p.topics || {}; p.notes = p.notes || {}; p.notesAt = p.notesAt || {};
+  if (!p.xpDev) p.xpDev = { old: p.xp || 0 };
+  for (const d of Object.values(p.days || {})) if (!d.dev) d.dev = { old: { min: d.min || 0, xp: d.xp || 0 } };
   if (p.gaps) { for (const t of Object.keys(p.gaps)) p.items[t] = p.gaps[t]; delete p.gaps; }
   if (p.goal && p.goal.target === 'g5') p.goal.target = 'grade';
   p.stats.practice = p.stats.practice || 0;
@@ -462,6 +590,7 @@ function render() {
       <a class="brand" href="#/path">${logo()}<span>Английский путь</span></a>
       <nav class="nav">${navHTML}</nav>
       <div class="top-stats">
+        ${cloudChip()}
         <span class="chip" title="Дней подряд">${icon('flame')}${P.streak.last >= today() - 1 ? P.streak.n : 0}</span>
         <span class="chip" title="Опыт">${icon('bolt')}${P.xp}</span>
       </div>
@@ -523,7 +652,7 @@ function authFrame(inner) {
 }
 function renderAuth() {
   const names = Object.keys(DB.profiles);
-  if (!onb && names.length) return renderPicker(names);
+  if (!onb && (names.length || sb)) return renderPicker(names);
   onb = onb || freshOnb();
   const steps = [stepNick, stepGrade, stepGoal, stepPlan];
   const card = `<form class="auth-card" id="onb" novalidate><div class="dots">${steps.map((_, i) => `<i class="${i <= onb.step ? 'on' : ''}"></i>`).join('')}</div>${steps[onb.step]()}</form>`;
@@ -539,11 +668,11 @@ function heroArt() {
 }
 const stepNick = () => `
   <h2>Как тебя зовут?</h2>
-  <p class="muted">Придумай ник. Пароль — по желанию, если компьютером пользуются несколько человек.</p>
-  <label class="field"><span>Ник</span><input name="nick" maxlength="20" autocomplete="off" value="${esc(onb.nick)}" placeholder="например, sasha_8a" required></label>
-  <label class="field"><span>Пароль (необязательно)</span><input name="pass" type="password" maxlength="40" value="${esc(onb.pass)}" autocomplete="new-password"></label>
+  <p class="muted">${sb ? 'Придумай ник и пароль. С ними ты войдёшь с телефона, планшета или другого компьютера — прогресс подтянется сам.' : 'Придумай ник. Пароль — по желанию.'}</p>
+  <label class="field"><span>Ник</span><input name="nick" maxlength="20" autocomplete="username" value="${esc(onb.nick)}" placeholder="например, sasha_8a" required></label>
+  <label class="field"><span>${sb ? 'Пароль (минимум 6 символов)' : 'Пароль (необязательно)'}</span><input name="pass" type="password" maxlength="40" value="${esc(onb.pass)}" autocomplete="new-password"></label>
   <p class="err" id="err"></p>
-  <div class="row-end">${Object.keys(DB.profiles).length ? '<button type="button" class="btn btn-ghost" data-act="cancel">Назад</button>' : ''}<button class="btn">Дальше</button></div>`;
+  <div class="row-end">${Object.keys(DB.profiles).length || sb ? '<button type="button" class="btn btn-ghost" data-act="cancel">Назад</button>' : ''}<button class="btn">Дальше</button></div>`;
 const stepGrade = () => `
   <h2>В каком ты классе?</h2>
   <p class="muted">Путь всё равно начинается с 5-го. Знаешь программу — сдай итоговую контрольную класса и переходи к следующему.</p>
@@ -589,11 +718,20 @@ function bindOnb() {
       const nick = f.nick.value.trim();
       if (nick.length < 2) return showErr('Ник — минимум 2 символа.');
       if (DB.profiles[nick]) return showErr('Такой ник уже есть на этом устройстве.');
+      if (sb) {
+        if (f.pass.value.length < 6) return showErr('Пароль — минимум 6 символов: с ним ты войдёшь с других устройств.');
+        showErr('Проверяю ник…');
+        if (await loginEmail(nick)) return showErr('Такой ник уже занят. Если это ты — вернись назад и нажми «Войти».');
+        showErr('');
+      }
       onb.nick = nick; onb.pass = f.pass.value;
     }
     if (onb.step === 3) {
+      const btn = f.querySelector('button:not([type])'); btn.disabled = true; btn.textContent = 'Создаю…';
       const prof = newProfile(onb.nick, onb.pass ? await hashPass(onb.nick, onb.pass) : null, onb.grade, { target: onb.target, minutes: onb.minutes, weeks: onb.weeks });
-      DB.profiles[prof.nick] = prof; DB.current = prof.nick; P = prof; save(); onb = null; chooseVoice();
+      DB.profiles[prof.nick] = prof; DB.current = prof.nick; P = prof; save();
+      const pass = onb.pass; onb = null; chooseVoice();
+      if (sb && pass) { const err = await cloudRegister(prof.nick, pass); if (err) toast(err + ' Пока прогресс сохраняется на этом устройстве; подключить облако можно в профиле.'); }
       render.scrolled = false; app.innerHTML = ''; location.hash = '#/path'; render(); return;
     }
     onb.step++; renderAuth();
@@ -605,15 +743,22 @@ function showErr(t) { const e = $('#err'); if (e) e.textContent = t; }
 function renderPicker(names) {
   app.innerHTML = authFrame(`
     <div class="auth-card">
-      <h2>Кто занимается?</h2>
-      <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<button class="who-btn" data-nick="${esc(n)}"><span class="ava">${esc(n[0].toUpperCase())}</span><span><b>${esc(n)}</b><small>${p.grade < 12 ? p.grade + ' класс' : 'не в школе'}, ${p.xp} XP</small></span>${p.pass ? icon('lock', 'muted') : ''}</button>`; }).join('')}</div>
-      <form id="pw" class="hidden" novalidate><label class="field"><span>Пароль</span><input type="password" name="pass" autocomplete="current-password"></label><p class="err" id="err"></p><div class="row-end"><button class="btn">Войти</button></div></form>
-      <button class="btn btn-ghost btn-wide" data-act="new">Новый ученик</button>
+      ${names.length ? `<h2>Кто занимается?</h2>
+      <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<button class="who-btn" data-nick="${esc(n)}"><span class="ava">${esc(n[0].toUpperCase())}</span><span><b>${esc(n)}</b><small>${p.grade < 12 ? p.grade + ' класс' : 'не в школе'}, ${p.xp} XP${p.cloud ? ', в облаке' : ''}</small></span>${p.cloud ? icon('cloud', 'muted') : p.pass ? icon('lock', 'muted') : ''}</button>`; }).join('')}</div>
+      <form id="pw" class="hidden" novalidate><label class="field"><span>Пароль</span><input type="password" name="pass" autocomplete="current-password"></label><p class="err" id="err"></p><div class="row-end"><button class="btn">Войти</button></div></form>` : '<h2>Добро пожаловать</h2><p class="muted">Начни с нуля или войди, если уже занимаешься на другом устройстве.</p>'}
+      <button class="btn btn-wide" data-act="new">Новый ученик</button>
+      ${sb ? `<button class="btn btn-ghost btn-wide" data-act="cloud">${icon('cloud')}Уже занимаюсь — войти по нику</button>
+      <form id="cl" class="hidden" novalidate>
+        <label class="field"><span>Ник</span><input name="nick" maxlength="20" autocomplete="username"></label>
+        <label class="field"><span>Пароль</span><input name="pass" type="password" autocomplete="current-password"></label>
+        <p class="err" id="err2"></p><div class="row-end"><button class="btn">Войти</button></div>
+      </form>` : ''}
     </div>`);
   let chosen = null;
   $('.auth-card').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.act === 'new') { onb = freshOnb(); app.innerHTML = ''; return renderAuth(); }
+    if (b.dataset.act === 'cloud') { $('#cl').classList.toggle('hidden'); $('#cl input').focus(); return; }
     if (b.dataset.nick) {
       chosen = b.dataset.nick;
       $$('.who-btn').forEach(x => x.classList.toggle('sel', x === b));
@@ -621,13 +766,48 @@ function renderPicker(names) {
       $('#pw').classList.remove('hidden'); $('#pw input').value = ''; $('#pw input').focus();
     }
   });
-  $('#pw').addEventListener('submit', async e => {
+  const pw = $('#pw');
+  pw && pw.addEventListener('submit', async e => {
     e.preventDefault();
-    if (await hashPass(chosen, e.target.pass.value) !== DB.profiles[chosen].pass) return showErr('Пароль не подходит.');
+    const pass = e.target.pass.value, p = DB.profiles[chosen];
+    const okLocal = await hashPass(chosen, pass) === p.pass;
+    if (p.cloud && sb) {
+      showErr('Вхожу…');
+      if (okLocal && await cloudUid() === p.cloud.uid) return login(chosen);
+      const r = await cloudLogin(chosen, pass);
+      if (r.error) { if (okLocal) { toast('Облако недоступно — открываю данные с этого устройства.'); return login(chosen); } return showErr(r.error); }
+      return finishCloudLogin(r, pass);
+    }
+    if (!okLocal) return showErr('Пароль не подходит.');
     login(chosen);
   });
+  const cl = $('#cl');
+  cl && cl.addEventListener('submit', async e => {
+    e.preventDefault();
+    const nick = cl.nick.value.trim(), pass = cl.pass.value, err = t => { $('#err2').textContent = t; };
+    if (!nick || !pass) return err('Введи ник и пароль.');
+    err('Вхожу…');
+    const r = await cloudLogin(nick, pass);
+    if (r.error) return err(r.error);
+    if (!r.row) return err('Аккаунт найден, но прогресса в облаке нет. Создай профиль заново.');
+    finishCloudLogin(r, pass);
+  });
 }
-function login(nick) { P = migrate(DB.profiles[nick]); DB.current = nick; save(); chooseVoice(); render.scrolled = false; location.hash = '#/path'; render(); }
+async function finishCloudLogin(r, pass) {
+  const nick = r.row.nick;
+  const local = Object.values(DB.profiles).find(p => p.cloud && p.cloud.uid === r.uid) || DB.profiles[nick];
+  let prof = local ? mergeP(migrate(local), r.row.data) : migrate(r.row.data);
+  if (local && local.nick !== nick) delete DB.profiles[local.nick];
+  prof.nick = nick; prof.cloud = { uid: r.uid }; prof.pass = await hashPass(nick, pass);
+  DB.profiles[nick] = prof; login(nick);
+  toast('Прогресс загружен из облака');
+}
+function login(nick) {
+  cloudReady = false;
+  P = migrate(DB.profiles[nick]); DB.current = nick; save(); chooseVoice(); render.scrolled = false; viewGrade = null; cal = null;
+  location.hash = '#/path'; render();
+  if (P.cloud) cloudPull();
+}
 
 /* ================= карта ================= */
 const ST_GAP = 96, ST_W = 300;
@@ -803,6 +983,7 @@ function viewMe() {
   return `
   <div class="page">
     <div class="me-head" id="mehead">${meHeadHTML()}</div>
+    <section class="cloud-card" id="cloudcard">${cloudCardHTML()}</section>
     <div class="stat-row">
       <div class="stat"><b>${P.xp}</b><span>опыт</span></div>
       <div class="stat"><b>${P.streak.best}</b><span>лучшая серия</span></div>
@@ -832,7 +1013,7 @@ function viewMe() {
         <button class="btn btn-ghost btn-sm" data-act="export">Сохранить прогресс в файл</button>
         <label class="btn btn-ghost btn-sm file-btn">Загрузить из файла<input type="file" id="imp" accept=".json,application/json"></label>
       </div>
-      <p class="muted small">Прогресс хранится в этом браузере. Файл нужен, чтобы перенести его на другой компьютер.</p>
+      <p class="muted small">${P.cloud ? 'Файл — запасная копия на всякий случай.' : 'Без облака прогресс хранится только в этом браузере. Файл — запасная копия.'}</p>
     </div>
   </div>`;
 }
@@ -855,12 +1036,56 @@ async function renameTo(nick, pass) {
   if (nick.length < 2) return 'Имя — минимум 2 символа.';
   if (nick === P.nick) return null;
   if (DB.profiles[nick]) return 'Такое имя уже есть на этом устройстве.';
-  if (P.pass) {
-    if (await hashPass(P.nick, pass || '') !== P.pass) return 'Пароль не подходит.';
-    P.pass = await hashPass(nick, pass); // пароль привязан к имени — пересчитываем
+  if (P.pass && await hashPass(P.nick, pass || '') !== P.pass) return 'Пароль не подходит.';
+  if (P.cloud) {
+    if (!sb) return 'Нет связи с облаком — имя можно сменить, когда появится интернет.';
+    const owner = await loginEmail(nick);
+    if (owner) return 'Такое имя уже занято в облаке.';
   }
-  delete DB.profiles[P.nick]; P.nick = nick; DB.profiles[nick] = P; DB.current = nick; save();
+  const oldNick = P.nick, oldPass = P.pass;
+  if (P.pass) P.pass = await hashPass(nick, pass); // пароль привязан к имени — пересчитываем
+  delete DB.profiles[oldNick]; P.nick = nick; DB.profiles[nick] = P; DB.current = nick;
+  try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); } catch { /* */ }
+  if (P.cloud) {
+    const err = await pushNow();
+    if (err) { delete DB.profiles[nick]; P.nick = oldNick; P.pass = oldPass; DB.profiles[oldNick] = P; DB.current = oldNick; save(); return err; }
+  }
   return null;
+}
+
+/* ---- облако в профиле ---- */
+function cloudCardHTML() {
+  if (!sb) return `<div class="cc-row">${icon('cloud')}<div><b>Облако недоступно</b><p class="muted small">Нет связи с сервером — прогресс сохраняется только на этом устройстве.</p></div></div>`;
+  if (P.cloud) return `<div class="cc-row">${icon('cloud')}<div><b>Прогресс сохраняется в облаке</b>
+    <p class="muted small">На другом устройстве открой сайт → «Уже занимаюсь — войти по нику» → ник <b>${esc(P.nick)}</b> и твой пароль. Уроки, календарь и заметки подтянутся сами.</p></div>
+    <button class="btn btn-ghost btn-sm" data-cc="sync">${icon('repeat')}Обновить</button></div>`;
+  return `<div class="cc-row">${icon('cloud')}<div><b>Облако не подключено</b>
+    <p class="muted small">Сейчас прогресс живёт только в этом браузере. Подключи облако — и занимайся с телефона, планшета и других компьютеров.</p></div></div>
+    <form class="cc-form" id="ccform" novalidate>
+      <label class="field"><span>Придумай пароль для входа (минимум 6 символов)</span><input name="pass" type="password" autocomplete="new-password"></label>
+      ${P.pass ? '<label class="field"><span>Текущий пароль профиля</span><input name="old" type="password" autocomplete="current-password"></label>' : ''}
+      <p class="err" id="ccerr"></p>
+      <div class="row"><button class="btn btn-sm">${icon('cloud')}Подключить облако</button></div>
+    </form>`;
+}
+function bindCloudCard() {
+  const box = $('#cloudcard'); if (!box) return;
+  box.addEventListener('click', async e => {
+    const b = e.target.closest('[data-cc]'); if (!b) return;
+    b.disabled = true; await cloudPull(); b.disabled = false; toast(cloudState === 'ok' ? 'Всё синхронизировано' : 'Нет связи с облаком');
+  });
+  const f = $('#ccform', box); if (!f) return;
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const err = t => { $('#ccerr', box).textContent = t; };
+    if (P.pass && await hashPass(P.nick, f.old.value) !== P.pass) return err('Текущий пароль не подходит.');
+    if (f.pass.value.length < 6) return err('Пароль — минимум 6 символов.');
+    err('Подключаю…');
+    const r = await cloudRegister(P.nick, f.pass.value);
+    if (r && !P.cloud) return err(r); // аккаунт не создан
+    P.pass = await hashPass(P.nick, f.pass.value); save();
+    toast(r ? 'Облако подключено. Первое сохранение не прошло — повторю автоматически.' : 'Облако подключено'); render();
+  });
 }
 
 /* ---- календарь и заметки ---- */
@@ -942,7 +1167,7 @@ function bindCal() {
     $('#saved').textContent = 'Сохраняю…';
     clearTimeout(tm);
     tm = setTimeout(() => {
-      if (v.trim()) P.notes[d] = v; else delete P.notes[d];
+      P.notes[d] = v.trim() ? v : ''; P.notesAt = P.notesAt || {}; P.notesAt[d] = Date.now();
       save();
       $('#saved').textContent = 'Сохранено';
       const cell = $(`.cd[data-day="${d}"]`, box);
@@ -957,7 +1182,7 @@ function bindCal() {
 }
 
 function bindMe() {
-  bindCal();
+  bindCal(); bindCloudCard();
   const head = $('#mehead');
   head.addEventListener('click', e => {
     const b = e.target.closest('[data-me]'); if (!b) return;
@@ -989,6 +1214,7 @@ function bindMe() {
     if (b.dataset.target) P.goal.target = b.dataset.target;
     if (b.dataset.min) P.goal.minutes = +b.dataset.min;
     if (b.dataset.weeks) { P.goal.weeks = +b.dataset.weeks; P.goal.start = today(); }
+    P.goalAt = Date.now();
     save(); render();
   });
 }
@@ -1009,7 +1235,9 @@ document.addEventListener('click', e => {
   const act = a.dataset.act;
   if (act === 'next') { const s = nextStep(); if (!s) return; if (s.kind === 'lesson') startLesson(s.l); else if (s.kind === 'test') startTest(s.u); else startFinal(s.g); }
   if (act === 'review') startReview();
-  if (act === 'logout') { P = null; DB.current = null; save(); onb = null; viewGrade = null; cal = null; app.innerHTML = ''; location.hash = ''; render(); }
+  if (act === 'logout') {
+    if (P.cloud && sb) { const t = cloudReady ? pushNow() : Promise.resolve(); t.finally(() => sb.auth.signOut({ scope: 'local' }).catch(() => {})); }
+    cloudReady = false; P = null; DB.current = null; save(); onb = null; viewGrade = null; cal = null; app.innerHTML = ''; location.hash = ''; render(); }
   if (act === 'export') {
     const blob = new Blob([JSON.stringify(P, null, 1)], { type: 'application/json' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `английский-путь-${P.nick}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 2000);
@@ -1265,6 +1493,7 @@ function finish() {
   const min = Math.min(45, Math.max(0.5, (Date.now() - S.start) / 60000));
   const acc = Math.round(S.correct / S.total * 100), perfect = S.wrongs.length === 0;
   const d = dayRec(), before = d.min; d.min += min;
+  d.dev = d.dev || {}; const dv = (d.dev[DEVICE] = d.dev[DEVICE] || { min: 0, xp: 0 }); dv.min += min;
   if (before < P.goal.minutes && d.min >= P.goal.minutes) P.stats.goalDays++;
   const t = today();
   if (P.streak.last !== t) { P.streak.n = P.streak.last === t - 1 ? P.streak.n + 1 : 1; P.streak.last = t; P.streak.best = Math.max(P.streak.best, P.streak.n); }
@@ -1297,7 +1526,8 @@ function finish() {
     xp = passed ? (S.mode === 'final' ? 60 : 25) : 5;
     sub = passed ? `Результат ${acc}%.` : `Результат ${acc}%, нужно 80%. Разбери ошибки и попробуй снова — или пройди уроки.`;
   }
-  P.xp += xp; d.xp += xp;
+  P.xp += xp; d.xp += xp; dv.xp += xp;
+  P.xpDev = P.xpDev || {}; P.xpDev[DEVICE] = (P.xpDev[DEVICE] || 0) + xp;
   // дневник для календаря
   const logLine = S.mode === 'lesson' ? `Урок «${S.l.t}» — ${acc}%`
     : S.mode === 'test' ? `Тест модуля «${S.u.title}» — ${acc}%${passed ? ', сдан' : ''}`
@@ -1346,5 +1576,9 @@ function confetti() {
 initVoices();
 if (/[?&]debug\b/.test(location.search)) window.__ep = { cur: () => cur, S: () => S, P: () => P, norm, buildLesson, buildUnitTest, buildFinal, buildPractice, COURSE, GR, LESSONS };
 if (DB.current && DB.profiles[DB.current] && !DB.profiles[DB.current].pass) P = migrate(DB.profiles[DB.current]);
+// облачный профиль: если сессия на этом устройстве ещё жива — входим без пароля
+if (!P && sb && DB.current && DB.profiles[DB.current] && DB.profiles[DB.current].cloud) {
+  cloudUid().then(uid => { if (uid && uid === DB.profiles[DB.current].cloud.uid && !P) login(DB.current); });
+}
 render();
 })();

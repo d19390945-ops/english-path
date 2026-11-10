@@ -345,6 +345,21 @@ body { overflow-x: clip; }
 .gl-bar i { display: block; height: 100%; background: var(--ink); transform-origin: left; }
 .goal-form { display: flex; flex-direction: column; gap: 10px; }
 
+/* ---------- облако ---------- */
+#cloudchip.chip { gap: 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
+#cloudchip.cloud-ok { color: var(--ok); }
+#cloudchip.cloud-err { color: var(--bad); }
+#cloudchip.cloud-sync .ic { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { #cloudchip.cloud-sync .ic { animation: none; } }
+.cloud-card { padding: 18px 20px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+.cc-row { display: flex; gap: 14px; align-items: flex-start; }
+.cc-row > .ic { width: 26px; height: 26px; margin-top: 2px; }
+.cc-row > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cc-row .btn { flex: none; }
+.cc-form { display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
+@media (max-width: 600px) { .cloud-t { display: none; } .cc-row { flex-wrap: wrap; } }
+
 /* ---------- имя ---------- */
 .me-name { min-width: 0; }
 .me-name .page-h { overflow-wrap: anywhere; }

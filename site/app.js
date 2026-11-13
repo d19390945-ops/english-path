@@ -416,6 +416,9 @@ const strHash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch
 const photoSrc = (p, thumb) => `photos/${thumb ? 't/' : ''}${p.id}.webp`;
 const quoteFor = p => (p.q || !QUOTES.length) ? null : QUOTES[strHash(p.id) % QUOTES.length];
 const START_CARDS = 3;
+const SHOW_PHOTO_OF_DAY = false;   // фото дня на главной — выключено (может вернём)
+const SHOW_RESULT_CARD = false;    // большая карточка на экране итогов — выключено
+const PLAYER_PHOTO_EVERY = 4;      // в уроке фото меняется каждые N заданий
 function cardsInit() { if (!P.cards || !P.cards.length) P.cards = PHOTOS.slice(0, START_CARDS).map(p => p.id); if (!P.favs) P.favs = []; }
 function unlockCards(n) {
   cardsInit(); const got = [];
@@ -857,7 +860,7 @@ function viewPath(arg) {
     const o = gradeOpen(n), pass = gradePassed(n);
     return `<a class="grade ${n === g ? 'on' : ''} ${o ? '' : 'locked'} ${pass ? 'passed' : ''}" href="#/path/${n}" aria-label="${n} класс"><b>${n}</b>${pass ? icon('check') : o ? `<span>${Math.round(gradeProgress(n) * 100)}%</span>` : icon('lock')}</a>`;
   }).join('');
-  const pd = photoOfDay(), pq = pd && quoteFor(pd);
+  const pd = SHOW_PHOTO_OF_DAY ? photoOfDay() : null, pq = pd && quoteFor(pd);
   return `
   <section class="hero ${pd ? 'hero-ph' : ''}">
     <span class="ghost-num" aria-hidden="true">${pad2(g)}</span>
@@ -1389,9 +1392,10 @@ function startReview() {
 }
 const isTest = () => S.mode === 'test' || S.mode === 'final';
 function openPlayer() {
-  Object.assign(S, { i: 0, total: S.queue.length, done: 0, correct: 0, wrongs: [], start: Date.now() });
-  const el = document.createElement('div'); el.className = 'player';
+  Object.assign(S, { i: 0, total: S.queue.length, done: 0, correct: 0, wrongs: [], start: Date.now(), screens: 0, phStart: Math.floor(Math.random() * Math.max(1, PHOTOS.length)), phN: 0 });
+  const el = document.createElement('div'); el.className = 'player' + (PHOTOS.length ? ' has-photo' : '');
   el.innerHTML = `
+    ${PHOTOS.length ? `<div class="p-photo" aria-hidden="true"><img class="pp" alt=""><img class="pp" alt=""><div class="pp-cap"></div></div>` : ''}
     <div class="p-top">
       <button class="icon-btn" data-p="quit" aria-label="Выйти">${icon('x')}</button>
       <div class="bar"><i></i></div>
@@ -1441,8 +1445,24 @@ function swapStage(html) {
   old.replaceWith(st); $('.p-stage').scrollTop = 0;
   return st;
 }
+// большое фото в уроке: плавная смена каждые PLAYER_PHOTO_EVERY экранов
+function playerPhoto() {
+  const box = $('.player .p-photo'); if (!box || !PHOTOS.length) return;
+  const p = PHOTOS[(S.phStart + S.phN++) % PHOTOS.length];
+  const imgs = $$('img.pp', box), next = imgs.find(x => !x.classList.contains('on')) || imgs[0], cur = imgs.find(x => x.classList.contains('on'));
+  const q = quoteFor(p), cap = $('.pp-cap', box);
+  const show = () => {
+    next.classList.add('on'); if (cur && cur !== next) cur.classList.remove('on');
+    cap.classList.remove('on');
+    setTimeout(() => { cap.innerHTML = q ? quoteHTML(q) : ''; cap.classList.toggle('on', !!q); }, 350);
+  };
+  next.onload = show; next.onerror = show; next.src = photoSrc(p);
+  // заранее подгружаем следующее
+  const after = PHOTOS[(S.phStart + S.phN) % PHOTOS.length]; if (after) { const pre = new Image(); pre.src = photoSrc(after); }
+}
 function nextScreen() {
   S.phase = 'ex'; setBar();
+  if (S.screens++ % PLAYER_PHOTO_EVERY === 0) playerPhoto();
   if (S.intro.length) return showIntro(S.intro.shift());
   if (S.i >= S.queue.length) return finish();
   showExercise(S.queue[S.i]);
@@ -1662,7 +1682,7 @@ function finish() {
   const nc = newCards[0], ncq = nc && quoteFor(nc);
   swapStage(`
     <div class="result ${passed ? 'win' : 'lose'} ${nc ? 'has-card' : ''}">
-      ${nc ? `<div class="reveal">
+      ${nc && SHOW_RESULT_CARD ? `<div class="reveal">
         <div class="reveal-card" style="--ar:${nc.w}/${nc.h}"><img src="${photoSrc(nc)}" alt=""></div>
         <p class="reveal-k">${newCards.length > 1 ? `+${newCards.length} карточки мечты` : 'Новая карточка мечты'} · ${P.cards.length} из ${PHOTOS.length}</p>
         ${quoteHTML(ncq)}
@@ -1675,6 +1695,7 @@ function finish() {
         <div class="stat"><b>${Math.max(1, Math.round(min))}</b><span>мин</span></div>
         <div class="stat"><b>+${xp}</b><span>опыт</span></div>
       </div>
+      ${nc && !SHOW_RESULT_CARD ? `<button class="card-note" data-p="dream">${icon('image')}<span>+${newCards.length} ${plural(newCards.length, 'карточка', 'карточки', 'карточек')} в «Мечтах» · ${P.cards.length} из ${PHOTOS.length}</span></button>` : ''}
       ${fresh.length ? `<h3 class="h-sub">${fresh.length > 1 ? 'Новые достижения' : 'Новое достижение'}</h3><div class="new-ach">${fresh.map(a => `<div class="ach got">${icon(a.i)}<b>${a.t}</b><span>${a.d}</span></div>`).join('')}</div>` : ''}
       ${S.wrongs.length ? `<h3 class="h-sub">Разбор ошибок</h3><ul class="mist">${S.wrongs.map(w => `<li><b>${esc(w.type === 'pick' ? (w.dir === 'en' ? w.en + ' — ' + w.ru : w.ru + ' — ' + w.en) : w.type === 'match' ? 'Пары слов' : (w.en || w.answer))}</b>${w.ru && w.type !== 'pick' ? `<span>${esc(w.ru)}</span>` : ''}</li>`).join('')}</ul>` : ''}
     </div>`);

@@ -720,3 +720,27 @@ select { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line-s
   .lb-stage { padding-bottom: 80px; }
   .lb-fig img { max-height: calc(100vh - 260px); }
 }
+
+/* ================= большое фото в уроке ================= */
+.card-note { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--hi); font-size: 14px; font-weight: 500; }
+.card-note:hover { border-color: var(--hi); }
+.p-photo { position: absolute; top: 0; bottom: 0; left: 0; width: 44vw; overflow: hidden; background: var(--surface); z-index: 0; }
+.p-photo img.pp { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; opacity: 0; transform: scale(1.06); transition: opacity 1.2s ease, transform 14s linear; }
+.p-photo img.pp.on { opacity: 1; transform: scale(1); }
+.p-photo::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(17, 24, 29, 0) 55%, var(--paper) 100%), linear-gradient(0deg, rgba(10, 14, 17, .85) 0%, rgba(10, 14, 17, 0) 38%); }
+.pp-cap { position: absolute; left: 36px; right: 22%; bottom: 36px; z-index: 2; opacity: 0; transform: translateY(8px); transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out); }
+.pp-cap.on { opacity: 1; transform: none; }
+.pp-cap .ph-q p { font-size: clamp(20px, 2.1vw, 28px); text-shadow: 0 2px 18px rgba(0, 0, 0, .6); }
+.player.has-photo > .p-top, .player.has-photo > .p-stage, .player.has-photo > .p-foot { margin-left: 44vw; position: relative; z-index: 1; }
+.player.has-photo .p-inner { max-width: 640px; }
+@media (prefers-reduced-motion: reduce) { .p-photo img.pp { transition: opacity 400ms ease; transform: none; } }
+
+@media (max-width: 1000px) {
+  .p-photo { width: auto; right: 0; }
+  .p-photo img.pp { filter: brightness(.34) saturate(.9); }
+  .p-photo::after { background: linear-gradient(180deg, rgba(17, 24, 29, .55) 0%, rgba(17, 24, 29, .35) 40%, rgba(17, 24, 29, .9) 100%); }
+  .pp-cap { display: none; }
+  .player.has-photo > .p-top, .player.has-photo > .p-stage, .player.has-photo > .p-foot { margin-left: 0; }
+  .player.has-photo .p-foot:not(.ok):not(.bad) { background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(10px); }
+  .player.has-photo .q-sent, .player.has-photo .card.info, .player.has-photo .g-card, .player.has-photo .theory.card { background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(6px); }
+}

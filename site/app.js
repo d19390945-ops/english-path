@@ -63,6 +63,9 @@ const I = {
   scheme: '<path d="M4 6h6v5H4zM14 13h6v5h-6z"/><path d="M10 8.5h2a2 2 0 0 1 2 2v5"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
   pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4.5 4"/>',
+  heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/>',
+  next: '<path d="M9 5l7 7-7 7"/>',
   cloud: '<path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.3 9.6 4.5 4.5 0 0 0 7 18.5z"/>',
 };
 const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n] || ''}</svg>`;
@@ -128,7 +131,7 @@ function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); } catc
 // Публичный ключ: его можно держать в коде, данные защищены правилами доступа в базе (каждый видит только свою строку).
 const CLOUD = { url: 'https://nuglrrzqvzjgpkojlktd.supabase.co', key: 'sb_publishable_Xi_HssgWTngscyqcmI1tAg_rGz1E1JJ' };
 let sb = null;
-try { if (window.supabase) sb = window.supabase.createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'englishpath.auth' } }); } catch { sb = null; }
+try { if (window.supabase && !/[?&]nocloud\b/.test(location.search)) sb = window.supabase.createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'englishpath.auth' } }); } catch { sb = null; }
 const DEVICE = (() => { try { let d = localStorage.getItem('englishpath.device'); if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem('englishpath.device', d); } return d; } catch { return 'dev'; } })();
 let cloudState = 'off'; // off | sync | ok | err
 function setCloud(s) {
@@ -245,6 +248,9 @@ function mergeP(a, b) {
   if ((b.goalAt || 0) > (a.goalAt || 0)) { out.goal = b.goal; out.goalAt = b.goalAt; }
   out.xp = Object.values(out.xpDev || {}).reduce((s, v) => s + v, 0);
   out.cloud = a.cloud || b.cloud;
+  out.cards = uniq([...(a.cards || []), ...(b.cards || [])]);
+  out.favs = (b.favsAt || 0) > (a.favsAt || 0) ? (b.favs || []) : (a.favs || []);
+  out.favsAt = Math.max(a.favsAt || 0, b.favsAt || 0);
   return out;
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); });
@@ -399,7 +405,33 @@ const ACH = [
   { id: 'g9', t: 'Уровень B1', d: 'Сдай итоговую за 9 класс', i: 'trophy', ok: () => gradePassed(9) },
   { id: 'g11', t: 'Уровень B2', d: 'Сдай итоговую за 11 класс', i: 'trophy', ok: () => gradePassed(11) },
   { id: 's30', t: 'Месяц', d: '30 дней подряд', i: 'flame', ok: () => P.streak.best >= 30 },
+  { id: 'cards25', t: 'Мечтатель', d: 'Открой 25 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 25 },
+  { id: 'cards100', t: 'Коллекционер', d: 'Открой 100 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 100 },
 ];
+/* ================= фото мечты ================= */
+const PHOTOS = window.PHOTOS || [];
+const QUOTES = window.QUOTES || [];
+const PH = new Map(PHOTOS.map((p, i) => [p.id, { ...p, i }]));
+const strHash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const photoSrc = (p, thumb) => `photos/${thumb ? 't/' : ''}${p.id}.webp`;
+const quoteFor = p => (p.q || !QUOTES.length) ? null : QUOTES[strHash(p.id) % QUOTES.length];
+const START_CARDS = 3;
+function cardsInit() { if (!P.cards || !P.cards.length) P.cards = PHOTOS.slice(0, START_CARDS).map(p => p.id); if (!P.favs) P.favs = []; }
+function unlockCards(n) {
+  cardsInit(); const got = [];
+  for (const p of PHOTOS) { if (got.length >= n) break; if (!P.cards.includes(p.id)) { P.cards.push(p.id); got.push(p); } }
+  return got;
+}
+const photoOfDay = () => PHOTOS.length ? PHOTOS[strHash('day' + today()) % PHOTOS.length] : null;
+const quoteHTML = q => q ? `<blockquote class="ph-q"><p>${esc(q.t)}</p>${q.a ? `<cite>${esc(q.a)}</cite>` : ''}</blockquote>` : '';
+const favBtn = id => { const on = (P.favs || []).includes(id); return `<button class="fav-btn ${on ? 'on' : ''}" data-fav="${id}" aria-pressed="${on}">${icon('heart')}<span>${on ? 'На моей доске' : 'На мою доску'}</span></button>`; };
+function toggleFav(id) {
+  cardsInit();
+  P.favs = P.favs.includes(id) ? P.favs.filter(x => x !== id) : [...P.favs, id];
+  P.favsAt = Date.now(); save();
+  $$(`[data-fav="${id}"]`).forEach(b => { b.outerHTML = favBtn(id); });
+}
+
 function checkAch() { const fresh = []; for (const a of ACH) if (!P.ach[a.id] && a.ok()) { P.ach[a.id] = today(); fresh.push(a); } return fresh; }
 
 /* ================= схемы грамматики ================= */
@@ -579,9 +611,10 @@ function render() {
   closePop();
   if (!P) return renderAuth();
   const [r, arg] = routeParts();
-  const views = { path: viewPath, review: viewReview, grammar: viewGrammar, me: viewMe };
+  cardsInit();
+  const views = { path: viewPath, review: viewReview, grammar: viewGrammar, dream: viewDream, me: viewMe };
   const view = views[r] || viewPath, cur = views[r] ? r : 'path';
-  const nav = [['path', 'Путь', 'path'], ['grammar', 'Грамматика', 'scheme'], ['review', 'Повторение', 'repeat'], ['me', 'Профиль', 'user']];
+  const nav = [['path', 'Путь', 'path'], ['grammar', 'Грамматика', 'scheme'], ['review', 'Повторение', 'repeat'], ['dream', 'Мечты', 'image'], ['me', 'Профиль', 'user']];
   const due = dueWords().length + dueItems().length;
   const navHTML = nav.map(([k, t, ic]) => `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${icon(ic)}<span>${t}</span>${k === 'review' && due ? `<b class="badge">${due}</b>` : ''}</a>`).join('');
   app.innerHTML = `
@@ -607,6 +640,7 @@ const after = {
     if (c && !render.scrolled) { render.scrolled = true; setTimeout(() => c.scrollIntoView({ block: 'center' }), 50); }
   },
   grammar(arg) { if (arg) afterTopicRender($('#main')); else bindGrammarSearch(); },
+  dream() { bindDream(); },
   me() { bindMe(); },
 };
 const logo = () => `<svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="20" class="logo-bg"/><path d="M12 28c0-9 16-7 16-16" class="logo-line"/><circle cx="12" cy="28" r="3.6" class="logo-dot"/><circle cx="28" cy="12" r="3.6" class="logo-dot"/></svg>`;
@@ -641,7 +675,8 @@ function todayPanel() {
 let onb = null;
 const freshOnb = () => ({ step: 0, nick: '', pass: '', grade: 5, target: 'grade', minutes: 30, weeks: 13 });
 function authFrame(inner) {
-  return `<div class="auth">
+  const bg = PHOTOS.length ? PHOTOS[strHash('auth' + Math.floor(Date.now() / 3600000)) % PHOTOS.length] : null;
+  return `${bg ? `<div class="auth-bg" aria-hidden="true"><img src="${photoSrc(bg)}" alt=""></div>` : ''}<div class="auth">
     <div class="auth-art">
       <span class="ghost-num" aria-hidden="true">5–11</span>
       <h1>Английский<br>путь</h1>
@@ -822,16 +857,21 @@ function viewPath(arg) {
     const o = gradeOpen(n), pass = gradePassed(n);
     return `<a class="grade ${n === g ? 'on' : ''} ${o ? '' : 'locked'} ${pass ? 'passed' : ''}" href="#/path/${n}" aria-label="${n} класс"><b>${n}</b>${pass ? icon('check') : o ? `<span>${Math.round(gradeProgress(n) * 100)}%</span>` : icon('lock')}</a>`;
   }).join('');
+  const pd = photoOfDay(), pq = pd && quoteFor(pd);
   return `
-  <section class="hero">
+  <section class="hero ${pd ? 'hero-ph' : ''}">
     <span class="ghost-num" aria-hidden="true">${pad2(g)}</span>
     <div class="hero-t">
       <p class="hero-lvl">${G.level}</p>
       <h1>${G.title}</h1>
       <div class="hero-bar"><i style="transform:scaleX(${gp})"></i></div>
       <p class="muted">${gradePassed(g) ? `Сдан на ${P.grades[g].best}%` : `${Math.round(gp * 100)}% пройдено, ${G.units.length} модулей, ${G.units.reduce((a, u) => a + u.lessons.length, 0)} уроков`}</p>
+      <nav class="grades" aria-label="Классы">${plaques}</nav>
     </div>
-    <nav class="grades" aria-label="Классы">${plaques}</nav>
+    ${pd ? `<figure class="hero-photo" data-ph="${pd.id}" data-any="1">
+      <img src="${photoSrc(pd)}" alt="" fetchpriority="high">
+      <figcaption><span class="ph-k">Фото дня</span>${quoteHTML(pq)}</figcaption>
+    </figure>` : ''}
   </section>
   ${todayPanel()}
   ${!open ? `<div class="banner">${icon('lock')}<div><b>${g} класс пока закрыт.</b> Сдай итоговую контрольную ${g - 1} класса — или пройди его модули.</div><a class="btn btn-sm" href="#/path/${g - 1}">К ${g - 1} классу</a></div>` : ''}
@@ -961,6 +1001,79 @@ function bindGrammarSearch() {
 }
 
 /* ================= повторение / профиль ================= */
+/* ================= мечты ================= */
+let dreamFilter = 'all';
+function viewDream() {
+  cardsInit();
+  const n = P.cards.length, total = PHOTOS.length, open = new Set(P.cards), favs = new Set(P.favs);
+  const opened = [...P.cards].reverse().map(id => PH.get(id)).filter(Boolean); // свежие открытые — первыми
+  const list = dreamFilter === 'favs' ? opened.filter(p => favs.has(p.id)) : dreamFilter === 'open' ? opened : [...opened, ...PHOTOS.filter(p => !open.has(p.id))];
+  return `
+  <div class="page page-wide">
+    <section class="hero hero-plain">
+      <span class="ghost-num" aria-hidden="true">${n}</span>
+      <div class="hero-t">
+        <p class="hero-lvl">Коллекция</p>
+        <h1>Мечты</h1>
+        <div class="hero-bar"><i style="transform:scaleX(${total ? n / total : 0})"></i></div>
+        <p class="muted">Открыто ${n} из ${total}. Каждый урок открывает новую карточку, тест модуля — две, итоговая — три.</p>
+      </div>
+    </section>
+    <div class="seg dream-seg">
+      ${[['all', 'Все'], ['open', 'Открытые'], ['favs', `Моя доска${favs.size ? ' · ' + favs.size : ''}`]].map(([k, t]) => `<button class="opt ${dreamFilter === k ? 'sel' : ''}" data-df="${k}">${t}</button>`).join('')}
+    </div>
+    ${list.length ? `<div class="masonry">${list.map(p => {
+      const o = open.has(p.id);
+      return `<button class="ph-tile ${o ? '' : 'locked'} ${favs.has(p.id) ? 'fav' : ''}" data-ph="${p.id}" style="aspect-ratio:${p.w}/${p.h}" aria-label="${o ? 'Открыть фото' : 'Закрытая карточка'}">
+        <img src="${photoSrc(p, true)}" alt="" loading="lazy" decoding="async">
+        ${o ? (favs.has(p.id) ? `<span class="ph-heart">${icon('heart')}</span>` : '') : `<span class="ph-lock">${icon('lock')}</span>`}
+      </button>`;
+    }).join('')}</div>` : `<p class="empty">${dreamFilter === 'favs' ? 'Отмечай сердечком карточки, которые вдохновляют больше всего, — они соберутся здесь.' : 'Пока пусто.'}</p>`}
+  </div>`;
+}
+function bindDream() {
+  $('.dream-seg').addEventListener('click', e => { const b = e.target.closest('[data-df]'); if (!b) return; dreamFilter = b.dataset.df; render(); });
+}
+// просмотр фото на весь экран
+let lb = null;
+function openLightbox(id, any) {
+  cardsInit();
+  const openIds = PHOTOS.filter(p => P.cards.includes(p.id)).map(p => p.id);
+  const ids = any && !openIds.includes(id) ? [id, ...openIds] : openIds; // фото дня видно всем, остальные — только открытые
+  if (!any && !P.cards.includes(id)) { const left = PHOTOS.length - P.cards.length; return toast(`Карточка закрыта. Пройди урок — откроется следующая (осталось ${left}).`); }
+  lb = { ids: ids.includes(id) ? ids : [id], i: Math.max(0, ids.indexOf(id)) };
+  const el = document.createElement('div'); el.className = 'lb'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Фото');
+  document.body.appendChild(el); document.body.classList.add('noscroll');
+  lbShow(); requestAnimationFrame(() => el.classList.add('in'));
+  el.addEventListener('click', e => {
+    const fv = e.target.closest('[data-fav]'); if (fv) return toggleFav(fv.dataset.fav);
+    const a = e.target.closest('[data-lb]');
+    if (a) { const d = a.dataset.lb; if (d === 'close') return closeLightbox(); lb.i = (lb.i + (d === 'next' ? 1 : -1) + lb.ids.length) % lb.ids.length; return lbShow(); }
+    if (e.target === el || e.target.classList.contains('lb-stage')) closeLightbox();
+  });
+}
+function lbShow() {
+  const p = PH.get(lb.ids[lb.i]), q = quoteFor(p), el = $('.lb');
+  const opened = P.cards.includes(p.id);
+  el.innerHTML = `
+    <button class="icon-btn lb-x" data-lb="close" aria-label="Закрыть">${icon('x')}</button>
+    <div class="lb-stage">
+      ${lb.ids.length > 1 ? `<button class="lb-nav prev" data-lb="prev" aria-label="Предыдущее">${icon('back')}</button>` : ''}
+      <figure class="lb-fig"><img src="${photoSrc(p)}" alt="" style="aspect-ratio:${p.w}/${p.h}">
+        <figcaption>${quoteHTML(q)}<div class="lb-act">${opened ? favBtn(p.id) : ''}<span class="muted small">${lb.i + 1} / ${lb.ids.length}</span></div></figcaption>
+      </figure>
+      ${lb.ids.length > 1 ? `<button class="lb-nav next" data-lb="next" aria-label="Следующее">${icon('next')}</button>` : ''}
+    </div>`;
+}
+function closeLightbox() { const el = $('.lb'); if (el) el.remove(); lb = null; if (!S) document.body.classList.remove('noscroll'); if (route() === 'dream') render(); }
+const route = () => routeParts()[0];
+document.addEventListener('keydown', e => {
+  if (!lb) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowRight') $('.lb [data-lb="next"]') && $('.lb [data-lb="next"]').click();
+  if (e.key === 'ArrowLeft') $('.lb [data-lb="prev"]') && $('.lb [data-lb="prev"]').click();
+});
+
 function viewReview() {
   const due = dueWords(), di = dueItems(), known = Object.keys(P.words).length;
   const weak = Object.entries(P.words).sort((a, b) => a[1].s - b[1].s).slice(0, 12).map(([en]) => wordByEn(en)).filter(Boolean);
@@ -990,6 +1103,10 @@ function viewMe() {
       <div class="stat"><b>${lessons}</b><span>${plural(lessons, 'урок', 'урока', 'уроков')}</span></div>
       <div class="stat"><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
     </div>
+    ${(() => { cardsInit(); const f = P.favs.map(id => PH.get(id)).filter(Boolean); return `
+    <h2 class="h-sub">Моя доска мечты <span class="muted">${f.length ? f.length + ' фото' : ''}</span></h2>
+    ${f.length ? `<div class="fav-strip">${f.slice(0, 12).map(p => `<button class="ph-tile" data-ph="${p.id}" style="aspect-ratio:${p.w}/${p.h}"><img src="${photoSrc(p, true)}" alt="" loading="lazy"></button>`).join('')}</div>`
+      : `<p class="empty">Открой фото в разделе <a href="#/dream">Мечты</a> и нажми «На мою доску» — оно появится здесь.</p>`}`; })()}
     <h2 class="h-sub">Календарь занятий</h2>
     <section class="cal" id="cal">${calHTML()}</section>
     <h2 class="h-sub">Классы</h2>
@@ -1224,6 +1341,9 @@ document.addEventListener('click', e => {
   const sayB = e.target.closest('[data-say]');
   if (sayB) { say(sayB.dataset.say, sayB.dataset.slow === '1'); if (!sayB.closest('.player')) return; }
   if (!P || S) return;
+  if (e.target.closest('.lb')) return; // у просмотра фото свои обработчики
+  const ph = e.target.closest('[data-ph]'); if (ph) return openLightbox(ph.dataset.ph, ph.dataset.any === '1');
+  const fv = e.target.closest('[data-fav]'); if (fv) return toggleFav(fv.dataset.fav);
   const pr = e.target.closest('[data-practice]'); if (pr) return startPractice(GR.get(pr.dataset.practice));
   const fin = e.target.closest('[data-final]'); if (fin) return startFinal(+fin.dataset.final);
   const stB = e.target.closest('[data-st]');
@@ -1292,7 +1412,9 @@ function closePlayer() {
   S = null; render();
 }
 async function onPlayerClick(e) {
+  const fv = e.target.closest('[data-fav]'); if (fv) return toggleFav(fv.dataset.fav);
   const b = e.target.closest('[data-p]'); if (!b) return;
+  if (b.dataset.p === 'dream') { closePlayer(); location.hash = '#/dream'; return; }
   if (b.dataset.p === 'quit' && (S.phase === 'result' || await confirmBox(isTest() ? 'Выйти из теста? Результат не засчитается.' : 'Выйти? Прогресс этого урока не сохранится.', 'Выйти', 'Остаться'))) closePlayer();
 }
 function onKey(e) {
@@ -1534,11 +1656,18 @@ function finish() {
     : S.mode === 'final' ? `Итоговая ${S.g} класса — ${acc}%${passed ? ', сдана' : ''}`
     : S.mode === 'practice' ? `Тема «${S.topic.t}» — ${acc}%` : 'Повторение';
   (d.log = d.log || []).push(logLine);
+  const newCards = passed && S.mode !== 'review' ? unlockCards(S.mode === 'final' ? 3 : S.mode === 'test' ? 2 : 1) : [];
   const fresh = checkAch(); save();
   const st = nextStep();
+  const nc = newCards[0], ncq = nc && quoteFor(nc);
   swapStage(`
-    <div class="result ${passed ? 'win' : 'lose'}">
-      <div class="res-ic">${icon(passed ? (isTest() ? 'trophy' : 'star') : 'repeat')}</div>
+    <div class="result ${passed ? 'win' : 'lose'} ${nc ? 'has-card' : ''}">
+      ${nc ? `<div class="reveal">
+        <div class="reveal-card" style="--ar:${nc.w}/${nc.h}"><img src="${photoSrc(nc)}" alt=""></div>
+        <p class="reveal-k">${newCards.length > 1 ? `+${newCards.length} карточки мечты` : 'Новая карточка мечты'} · ${P.cards.length} из ${PHOTOS.length}</p>
+        ${quoteHTML(ncq)}
+        <div class="reveal-act">${favBtn(nc.id)}<button class="btn btn-ghost btn-sm" data-p="dream">${icon('image')}Вся коллекция</button></div>
+      </div>` : `<div class="res-ic">${icon(passed ? (isTest() ? 'trophy' : 'star') : 'repeat')}</div>`}
       <h2 class="res-t">${title}</h2>
       <p class="muted">${esc(sub)}</p>
       <div class="stat-row">

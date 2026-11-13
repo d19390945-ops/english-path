@@ -418,6 +418,7 @@ const quoteFor = p => (p.q || !QUOTES.length) ? null : QUOTES[strHash(p.id) % QU
 const START_CARDS = 3;
 const SHOW_PHOTO_OF_DAY = false;   // фото дня на главной — выключено (может вернём)
 const SHOW_RESULT_CARD = false;    // большая карточка на экране итогов — выключено
+const SHOW_DREAM = false;          // раздел «Мечты» и «Моя доска» — спрятаны (фото теперь на карте)
 const PLAYER_PHOTO_EVERY = 4;      // в уроке фото меняется каждые N заданий
 function cardsInit() { if (!P.cards || !P.cards.length) P.cards = PHOTOS.slice(0, START_CARDS).map(p => p.id); if (!P.favs) P.favs = []; }
 function unlockCards(n) {
@@ -425,6 +426,9 @@ function unlockCards(n) {
   for (const p of PHOTOS) { if (got.length >= n) break; if (!P.cards.includes(p.id)) { P.cards.push(p.id); got.push(p); } }
   return got;
 }
+// у каждого модуля своё фото: модули идут подряд по всем классам, фото — по перемешанному списку
+const UNIT_ORD = new Map(); { let k = 0; for (const g of Object.keys(COURSE).map(Number).sort((a, b) => a - b)) for (const u of COURSE[g].units) UNIT_ORD.set(`${g}.${u.id}`, k++); }
+const unitPhoto = u => PHOTOS.length ? PHOTOS[UNIT_ORD.get(u.key) % PHOTOS.length] : null;
 const photoOfDay = () => PHOTOS.length ? PHOTOS[strHash('day' + today()) % PHOTOS.length] : null;
 const quoteHTML = q => q ? `<blockquote class="ph-q"><p>${esc(q.t)}</p>${q.a ? `<cite>${esc(q.a)}</cite>` : ''}</blockquote>` : '';
 const favBtn = id => { const on = (P.favs || []).includes(id); return `<button class="fav-btn ${on ? 'on' : ''}" data-fav="${id}" aria-pressed="${on}">${icon('heart')}<span>${on ? 'На моей доске' : 'На мою доску'}</span></button>`; };
@@ -617,7 +621,7 @@ function render() {
   cardsInit();
   const views = { path: viewPath, review: viewReview, grammar: viewGrammar, dream: viewDream, me: viewMe };
   const view = views[r] || viewPath, cur = views[r] ? r : 'path';
-  const nav = [['path', 'Путь', 'path'], ['grammar', 'Грамматика', 'scheme'], ['review', 'Повторение', 'repeat'], ['dream', 'Мечты', 'image'], ['me', 'Профиль', 'user']];
+  const nav = [['path', 'Путь', 'path'], ['grammar', 'Грамматика', 'scheme'], ['review', 'Повторение', 'repeat'], ['me', 'Профиль', 'user']];
   const due = dueWords().length + dueItems().length;
   const navHTML = nav.map(([k, t, ic]) => `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${icon(ic)}<span>${t}</span>${k === 'review' && due ? `<b class="badge">${due}</b>` : ''}</a>`).join('');
   app.innerHTML = `
@@ -906,10 +910,15 @@ function unitHTML(u) {
       <p class="unit-sub">${esc(u.sub)}</p>
       <span class="unit-meta">${passed ? `${icon('check')}${best ? best + '%' : 'сдан'}` : `${done} из ${u.lessons.length}`}</span>
     </header>
-    <div class="stations" style="height:${h}px" data-unit="${u.key}" data-n="${n}">
-      <svg class="track" width="${ST_W}" height="${h}" aria-hidden="true"></svg>
-      ${sts.join('')}
-    </div>
+    ${(() => {
+      const ph = unitPhoto(u), flip = UNIT_ORD.get(u.key) % 2 === 1, q = ph && quoteFor(ph);
+      return `<div class="unit-body ${ph ? 'with-ph' : ''} ${flip ? 'flip names-left' : 'names-right'}">
+      ${ph ? `<figure class="unit-photo ${open ? '' : 'dim'}" style="--ar:${ph.w}/${ph.h}"><img src="${photoSrc(ph)}" alt="" loading="lazy" decoding="async">${q ? `<figcaption>${quoteHTML(q)}</figcaption>` : ''}</figure>` : ''}
+      <div class="stations-col"><div class="stations" style="height:${h}px" data-unit="${u.key}" data-n="${n}">
+        <svg class="track" width="${ST_W}" height="${h}" aria-hidden="true"></svg>
+        ${sts.join('')}
+      </div></div>
+    </div>`; })()}
     ${!passed && gradeOpen(u.grade) && done < u.lessons.length ? `<button class="extern" data-st="test" data-key="${u.key}">${icon('bolt')}Знаю эту тему — сдать модуль тестом</button>` : ''}
   </section>`;
 }
@@ -1106,7 +1115,7 @@ function viewMe() {
       <div class="stat"><b>${lessons}</b><span>${plural(lessons, 'урок', 'урока', 'уроков')}</span></div>
       <div class="stat"><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
     </div>
-    ${(() => { cardsInit(); const f = P.favs.map(id => PH.get(id)).filter(Boolean); return `
+    ${!SHOW_DREAM ? '' : (() => { cardsInit(); const f = P.favs.map(id => PH.get(id)).filter(Boolean); return `
     <h2 class="h-sub">Моя доска мечты <span class="muted">${f.length ? f.length + ' фото' : ''}</span></h2>
     ${f.length ? `<div class="fav-strip">${f.slice(0, 12).map(p => `<button class="ph-tile" data-ph="${p.id}" style="aspect-ratio:${p.w}/${p.h}"><img src="${photoSrc(p, true)}" alt="" loading="lazy"></button>`).join('')}</div>`
       : `<p class="empty">Открой фото в разделе <a href="#/dream">Мечты</a> и нажми «На мою доску» — оно появится здесь.</p>`}`; })()}
@@ -1695,7 +1704,7 @@ function finish() {
         <div class="stat"><b>${Math.max(1, Math.round(min))}</b><span>мин</span></div>
         <div class="stat"><b>+${xp}</b><span>опыт</span></div>
       </div>
-      ${nc && !SHOW_RESULT_CARD ? `<button class="card-note" data-p="dream">${icon('image')}<span>+${newCards.length} ${plural(newCards.length, 'карточка', 'карточки', 'карточек')} в «Мечтах» · ${P.cards.length} из ${PHOTOS.length}</span></button>` : ''}
+      ${nc && !SHOW_RESULT_CARD && SHOW_DREAM ? `<button class="card-note" data-p="dream">${icon('image')}<span>+${newCards.length} ${plural(newCards.length, 'карточка', 'карточки', 'карточек')} в «Мечтах» · ${P.cards.length} из ${PHOTOS.length}</span></button>` : ''}
       ${fresh.length ? `<h3 class="h-sub">${fresh.length > 1 ? 'Новые достижения' : 'Новое достижение'}</h3><div class="new-ach">${fresh.map(a => `<div class="ach got">${icon(a.i)}<b>${a.t}</b><span>${a.d}</span></div>`).join('')}</div>` : ''}
       ${S.wrongs.length ? `<h3 class="h-sub">Разбор ошибок</h3><ul class="mist">${S.wrongs.map(w => `<li><b>${esc(w.type === 'pick' ? (w.dir === 'en' ? w.en + ' — ' + w.ru : w.ru + ' — ' + w.en) : w.type === 'match' ? 'Пары слов' : (w.en || w.answer))}</b>${w.ru && w.type !== 'pick' ? `<span>${esc(w.ru)}</span>` : ''}</li>`).join('')}</ul>` : ''}
     </div>`);

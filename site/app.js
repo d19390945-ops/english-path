@@ -62,6 +62,7 @@ const I = {
   video: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.5l5-3v9l-5-3z"/>',
   scheme: '<path d="M4 6h6v5H4zM14 13h6v5h-6z"/><path d="M10 8.5h2a2 2 0 0 1 2 2v5"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.6 3.6-5.5 6.5-5.5s5.5 1.9 6.5 5.5"/><path d="M15.5 4.6a3.5 3.5 0 0 1 0 6.8M17.5 14.8c2 .6 3.4 2.3 4 5.2"/>',
   pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4.5 4"/>',
   heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/>',
@@ -196,6 +197,14 @@ async function pushNow() {
     setCloud('ok'); return null;
   } catch (e) { setCloud('err'); return cloudErr(e); }
 }
+async function checkAdmin() {
+  if (!sb || !P || !P.cloud) return;
+  try {
+    const { data } = await sb.from('admins').select('user_id').eq('user_id', P.cloud.uid).maybeSingle();
+    const was = isAdmin; isAdmin = !!data;
+    if (isAdmin !== was && !S) render();
+  } catch { /* нет связи */ }
+}
 async function cloudPull() {
   if (!sb || !P || !P.cloud || S) return;
   try {
@@ -270,6 +279,8 @@ function newProfile(nick, pass, grade, goal) {
 function migrate(p) { // профили из первой версии
   p.items = p.items || {}; p.topics = p.topics || {}; p.notes = p.notes || {}; p.notesAt = p.notesAt || {};
   if (!p.xpDev) p.xpDev = { old: p.xp || 0 };
+  if (!p.mode) p.mode = (p.grade || 5) >= 12 ? 'general' : 'school';
+  if (p.mode === 'general' && p.goal && p.goal.target === 'grade') p.goal.target = 'B1';
   for (const d of Object.values(p.days || {})) if (!d.dev) d.dev = { old: { min: d.min || 0, xp: d.xp || 0 } };
   if (p.gaps) { for (const t of Object.keys(p.gaps)) p.items[t] = p.gaps[t]; delete p.gaps; }
   if (p.goal && p.goal.target === 'g5') p.goal.target = 'grade';
@@ -319,12 +330,13 @@ const sfx = {
 
 /* ================= прогресс ================= */
 const gradePassed = g => !!(P.grades[g] && P.grades[g].passed);
-const gradeOpen = g => g === 5 || gradePassed(g) || gradePassed(g - 1);
+let isAdmin = false; // админ: всё открыто + страница «Ученики»
+const gradeOpen = g => isAdmin || g === 5 || gradePassed(g) || gradePassed(g - 1);
 const gradeExists = g => !!COURSE[g];
 const unitPassed = u => !!(P.units[u.key] && P.units[u.key].passed) || gradePassed(u.grade);
 const lessonDone = l => !!P.lessons[l.key] || unitPassed(l.unit);
-const unitOpen = u => gradeOpen(u.grade) && (u.index === 0 || unitPassed(u) || unitPassed(COURSE[u.grade].units[u.index - 1]));
-const lessonOpen = l => unitOpen(l.unit) && (l.index === 0 || lessonDone(l) || lessonDone(l.unit.lessons[l.index - 1]));
+const unitOpen = u => isAdmin || gradeOpen(u.grade) && (u.index === 0 || unitPassed(u) || unitPassed(COURSE[u.grade].units[u.index - 1]));
+const lessonOpen = l => isAdmin || unitOpen(l.unit) && (l.index === 0 || lessonDone(l) || lessonDone(l.unit.lessons[l.index - 1]));
 const unitLessonsDone = u => u.lessons.filter(lessonDone).length;
 function nextStep() {
   for (const g of GRADES) {
@@ -362,10 +374,20 @@ function updItem(text, ok) {
 
 /* ---- план ---- */
 const LESSON_MIN = g => g === 5 ? 9 : 14;
-const TARGETS = { grade: 'Программа своего класса', A2: 'Уровень A2 (7 класс)', B1: 'Уровень B1 (9 класс)', B2: 'Уровень B2 (11 класс)' };
+/* школа — по классам, остальные — по ступеням того же курса */
+const STAGES = { 5: 'A1.1', 6: 'A1.2', 7: 'A2.1', 8: 'A2.2', 9: 'B1.1', 10: 'B1.2', 11: 'B2' };
+const isGen = (p = P) => !!p && p.mode === 'general';
+const gTitle = (g, p = P) => isGen(p) ? `Ступень ${STAGES[g]}` : `${g} класс`;
+const gShort = (g, p = P) => isGen(p) ? STAGES[g] : String(g);
+const gOf = (g, p = P) => isGen(p) ? `ступени ${STAGES[g]}` : `${g} класса`;
+const TARGETS_SCHOOL = { grade: 'Программа своего класса', A2: 'Уровень A2 (7 класс)', B1: 'Уровень B1 (9 класс)', B2: 'Уровень B2 (11 класс)' };
+const TARGETS_GEN = { A1: 'Уровень A1 — основа', A2: 'Уровень A2 — уверенный базовый', B1: 'Уровень B1 — свободное общение', B2: 'Уровень B2 — работа и учёба' };
+const targetsFor = mode => mode === 'general' ? TARGETS_GEN : TARGETS_SCHOOL;
+const PLACES = { school: 'Учусь в школе', uni: 'Учусь в колледже или вузе', work: 'Работаю', other: 'Другое' };
+const PURPOSES = { school: 'Школа и экзамены', travel: 'Путешествия', career: 'Работа и карьера', abroad: 'Учёба или жизнь за границей', self: 'Для себя' };
 const DEADLINES = [[4, '1 месяц'], [8, '2 месяца'], [13, '3 месяца'], [26, 'полгода'], [52, 'год']];
 const MINUTES = [15, 20, 30, 45, 60];
-const targetGrade = () => ({ grade: Math.min(11, Math.max(5, P.grade)), A2: 7, B1: 9, B2: 11 }[P.goal.target] || 11);
+const targetGrade = () => ({ grade: Math.min(11, Math.max(5, P.grade)), A1: 6, A2: 8, B1: 10, B2: 11 }[P.goal.target] || 11);
 function planInfo() {
   const tg = targetGrade(); let total = 0;
   for (const g of GRADES) {
@@ -382,7 +404,7 @@ function planText(pi = planInfo()) {
   if (!pi.total) return 'Цель выполнена. Можно поставить следующую в профиле.';
   const h = Math.round(pi.total / 60);
   const hrs = pi.total < 90 ? `${pi.total} мин` : `${h} ${plural(h, 'час', 'часа', 'часов')}`;
-  let s = `До ${pi.tg} класса осталось около ${hrs} занятий. При ${P.goal.minutes} мин в день — ${pi.days} ${plural(pi.days, 'день', 'дня', 'дней')}, до ${fmtDate(pi.finish)}.`;
+  let s = `До ${isGen() ? 'уровня ' + STAGES[pi.tg].replace(/\.\d$/, '') : pi.tg + ' класса'} осталось около ${hrs} занятий. При ${P.goal.minutes} мин в день — ${pi.days} ${plural(pi.days, 'день', 'дня', 'дней')}, до ${fmtDate(pi.finish)}.`;
   if (!pi.ok) s += ` К сроку не успеть: нужно около ${pi.need} мин в день.`;
   return s;
 }
@@ -400,10 +422,10 @@ const ACH = [
   { id: 's7', t: 'Неделя', d: '7 дней подряд', i: 'flame', ok: () => P.streak.best >= 7 },
   { id: 'review5', t: 'Память', d: 'Сделай 5 повторений', i: 'repeat', ok: () => P.stats.reviews >= 5 },
   { id: 'w300', t: '300 слов', d: 'Собери 300 слов в копилку', i: 'book', ok: () => Object.keys(P.words).length >= 300 },
-  { id: 'g5', t: '5 класс', d: 'Сдай итоговую за 5 класс', i: 'trophy', ok: () => gradePassed(5) },
-  { id: 'g7', t: 'Уровень A2', d: 'Сдай итоговую за 7 класс', i: 'trophy', ok: () => gradePassed(7) },
-  { id: 'g9', t: 'Уровень B1', d: 'Сдай итоговую за 9 класс', i: 'trophy', ok: () => gradePassed(9) },
-  { id: 'g11', t: 'Уровень B2', d: 'Сдай итоговую за 11 класс', i: 'trophy', ok: () => gradePassed(11) },
+  { id: 'g5', t: 'Первая ступень', d: 'Сдай итоговую за 5 класс (A1.1)', i: 'trophy', ok: () => gradePassed(5) },
+  { id: 'g7', t: 'Уровень A2', d: 'Сдай итоговую за 7 класс (A2.1)', i: 'trophy', ok: () => gradePassed(7) },
+  { id: 'g9', t: 'Уровень B1', d: 'Сдай итоговую за 9 класс (B1.1)', i: 'trophy', ok: () => gradePassed(9) },
+  { id: 'g11', t: 'Уровень B2', d: 'Сдай итоговую за 11 класс (B2)', i: 'trophy', ok: () => gradePassed(11) },
   { id: 's30', t: 'Месяц', d: '30 дней подряд', i: 'flame', ok: () => P.streak.best >= 30 },
   { id: 'cards25', t: 'Мечтатель', d: 'Открой 25 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 25 },
   { id: 'cards100', t: 'Коллекционер', d: 'Открой 100 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 100 },
@@ -429,6 +451,36 @@ function unlockCards(n) {
 // у каждого модуля своё фото: модули идут подряд по всем классам, фото — по перемешанному списку
 const UNIT_ORD = new Map(); { let k = 0; for (const g of Object.keys(COURSE).map(Number).sort((a, b) => a - b)) for (const u of COURSE[g].units) UNIT_ORD.set(`${g}.${u.id}`, k++); }
 const unitPhoto = u => PHOTOS.length ? PHOTOS[UNIT_ORD.get(u.key) % PHOTOS.length] : null;
+/* «что даст урок» — цифры */
+const LEVEL_OF = g => g <= 6 ? 'A1' : g <= 8 ? 'A2' : g <= 10 ? 'B1' : 'B2';
+const LEVEL_GRADES = { A1: [5, 6], A2: [7, 8], B1: [9, 10], B2: [11] };
+const gradeItems = g => COURSE[g].units.reduce((a, u) => a + u.lessons.length + 1, 0) + 1; // уроки + тесты + итоговая
+const levelItems = lv => LEVEL_GRADES[lv].reduce((a, g) => a + gradeItems(g), 0);
+const fmtPct = x => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10).toString().replace('.', ',');
+function goalItems() { const tg = targetGrade(); let n = 0; for (let g = 5; g <= tg; g++) n += gradeItems(g); return n; }
+function goalName() { const k = P.goal.target; return k === 'grade' ? `программа ${P.grade} класса` : `уровень ${k}`; }
+function learnLine(l) {
+  const t = l.topic, lead = t && t.b.find(b => b.k === 'lead');
+  const what = t ? (lead ? lead.t.split(/(?<=[.!?])\s/)[0] : t.t) : '';
+  const words = l.words.slice(0, 3).map(w => w.en).join(', ');
+  return { topic: t ? t.t : '', what, words };
+}
+function gainHTML(l, compact = false) {
+  const lv = LEVEL_OF(l.unit.grade), lvPct = 100 / levelItems(lv), goalPct = 100 / goalItems();
+  const ln = learnLine(l), min = LESSON_MIN(l.unit.grade);
+  const inGoal = l.unit.grade <= targetGrade();
+  return `<div class="gain ${compact ? 'gain-sm' : ''}">
+    ${compact ? '' : '<p class="gain-k">Что даст этот урок</p>'}
+    <div class="gain-row">
+      <span>${icon('clock')}<b>~${min}</b> мин</span>
+      <span>${icon('book')}<b>${l.words.length}</b> новых слов</span>
+      <span>${icon('bolt')}<b>+${fmtPct(lvPct)}%</b> к уровню ${lv}</span>
+    </div>
+    ${ln.topic ? `<p class="gain-learn"><b>Научишься:</b> ${esc(ln.topic)}${!compact && ln.what ? ` — ${esc(ln.what.charAt(0).toLowerCase() + ln.what.slice(1))}` : ''}</p>` : ''}
+    ${!compact && ln.words ? `<p class="gain-learn"><b>Новые слова:</b> ${esc(ln.words)} и другие.</p>` : ''}
+    ${inGoal ? `<p class="gain-goal">Цель «${esc(goalName())}» станет ближе на ${fmtPct(goalPct)}%.</p>` : ''}
+  </div>`;
+}
 const photoOfDay = () => PHOTOS.length ? PHOTOS[strHash('day' + today()) % PHOTOS.length] : null;
 const quoteHTML = q => q ? `<blockquote class="ph-q"><p>${esc(q.t)}</p>${q.a ? `<cite>${esc(q.a)}</cite>` : ''}</blockquote>` : '';
 const favBtn = id => { const on = (P.favs || []).includes(id); return `<button class="fav-btn ${on ? 'on' : ''}" data-fav="${id}" aria-pressed="${on}">${icon('heart')}<span>${on ? 'На моей доске' : 'На мою доску'}</span></button>`; };
@@ -615,13 +667,14 @@ window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); }
 const routeParts = () => (location.hash.replace(/^#\/?/, '') || 'path').split('/');
 
 function render() {
+  document.body.dataset.sec = P ? ((routeParts()[0] in { path: 1, review: 1, grammar: 1, me: 1, admin: 1 }) ? routeParts()[0] : 'path') : 'auth';
   closePop();
   if (!P) return renderAuth();
   const [r, arg] = routeParts();
   cardsInit();
-  const views = { path: viewPath, review: viewReview, grammar: viewGrammar, dream: viewDream, me: viewMe };
+  const views = { path: viewPath, review: viewReview, grammar: viewGrammar, dream: viewDream, me: viewMe, admin: isAdmin ? viewAdmin : viewPath };
   const view = views[r] || viewPath, cur = views[r] ? r : 'path';
-  const nav = [['path', 'Путь', 'path'], ['grammar', 'Грамматика', 'scheme'], ['review', 'Повторение', 'repeat'], ['me', 'Профиль', 'user']];
+  const nav = [['path', 'Путь', 'path'], ['grammar', 'Грамматика', 'scheme'], ['review', 'Повторение', 'repeat'], ['me', 'Профиль', 'user'], ...(isAdmin ? [['admin', 'Ученики', 'users']] : [])];
   const due = dueWords().length + dueItems().length;
   const navHTML = nav.map(([k, t, ic]) => `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${icon(ic)}<span>${t}</span>${k === 'review' && due ? `<b class="badge">${due}</b>` : ''}</a>`).join('');
   app.innerHTML = `
@@ -649,6 +702,7 @@ const after = {
   grammar(arg) { if (arg) afterTopicRender($('#main')); else bindGrammarSearch(); },
   dream() { bindDream(); },
   me() { bindMe(); },
+  admin(arg) { loadAdmin(arg); },
 };
 const logo = () => `<svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="20" class="logo-bg"/><path d="M12 28c0-9 16-7 16-16" class="logo-line"/><circle cx="12" cy="28" r="3.6" class="logo-dot"/><circle cx="28" cy="12" r="3.6" class="logo-dot"/></svg>`;
 
@@ -658,9 +712,9 @@ function ring(val, max, size = 60) {
 }
 function stepLabel(st) {
   if (!st) return { t: 'Весь курс пройден' };
-  if (st.kind === 'lesson') return { t: st.l.t, s: `${st.l.unit.grade} класс, ${st.l.unit.title}` };
-  if (st.kind === 'test') return { t: 'Тест модуля', s: `${st.u.grade} класс, ${st.u.title}` };
-  return { t: 'Итоговая контрольная', s: `${st.g} класс` };
+  if (st.kind === 'lesson') return { t: st.l.t, s: `${gTitle(st.l.unit.grade)}, ${st.l.unit.title}` };
+  if (st.kind === 'test') return { t: 'Тест модуля', s: `${gTitle(st.u.grade)}, ${st.u.title}` };
+  return { t: 'Итоговая контрольная', s: gTitle(st.g) };
 }
 function todayPanel() {
   const st = nextStep(), lb = stepLabel(st), m = todayMin(), due = dueWords().length + dueItems().length;
@@ -680,19 +734,26 @@ function todayPanel() {
 
 /* ================= вход ================= */
 let onb = null;
-const freshOnb = () => ({ step: 0, nick: '', pass: '', grade: 5, target: 'grade', minutes: 30, weeks: 13 });
+const freshOnb = () => ({ step: 0, nick: '', pass: '', place: 'school', grade: 5, purpose: 'school', target: 'grade', minutes: 30, weeks: 13 });
+function onbProfile(passHash) {
+  const school = onb.place === 'school';
+  const p = newProfile(onb.nick, passHash, school ? onb.grade : 12, { target: onb.target, minutes: onb.minutes, weeks: onb.weeks });
+  p.mode = school ? 'school' : 'general'; p.place = onb.place; p.purpose = onb.purpose;
+  return p;
+}
 function authFrame(inner) {
   const bg = PHOTOS.length ? PHOTOS[strHash('auth' + Math.floor(Date.now() / 3600000)) % PHOTOS.length] : null;
   return `${bg ? `<div class="auth-bg" aria-hidden="true"><img src="${photoSrc(bg)}" alt=""></div>` : ''}<div class="auth">
     <div class="auth-art">
       <span class="ghost-num" aria-hidden="true">5–11</span>
       <h1>Английский<br>путь</h1>
-      <p>Школьная программа с 5 по 11 класс. Грамматика в схемах, практика по-настоящему, уровень до B2.</p>
+      <p>Английский с нуля до B2 — по школьной программе или в своём темпе. Грамматика в схемах, практика по-настоящему.</p>
     </div>
     ${inner}
   </div>`;
 }
 function renderAuth() {
+  document.body.dataset.sec = 'auth';
   const names = Object.keys(DB.profiles);
   if (!onb && (names.length || sb)) return renderPicker(names);
   onb = onb || freshOnb();
@@ -716,13 +777,18 @@ const stepNick = () => `
   <p class="err" id="err"></p>
   <div class="row-end">${Object.keys(DB.profiles).length || sb ? '<button type="button" class="btn btn-ghost" data-act="cancel">Назад</button>' : ''}<button class="btn">Дальше</button></div>`;
 const stepGrade = () => `
-  <h2>В каком ты классе?</h2>
-  <p class="muted">Путь всё равно начинается с 5-го. Знаешь программу — сдай итоговую контрольную класса и переходи к следующему.</p>
-  <div class="pick-grid">${ALL_GRADES.map(g => `<button type="button" class="opt opt-sq ${onb.grade === g ? 'sel' : ''}" data-grade="${g}">${g}</button>`).join('')}<button type="button" class="opt opt-sq wide ${onb.grade === 12 ? 'sel' : ''}" data-grade="12">Уже не в школе</button></div>
+  <h2>Где ты учишься?</h2>
+  <div class="seg col">${Object.entries(PLACES).map(([k, t]) => `<button type="button" class="opt ${onb.place === k ? 'sel' : ''}" data-place="${k}">${t}</button>`).join('')}</div>
+  ${onb.place === 'school' ? `<h3 class="h-sub">В каком классе?</h3>
+  <div class="pick-grid">${ALL_GRADES.map(g => `<button type="button" class="opt opt-sq ${onb.grade === g ? 'sel' : ''}" data-grade="${g}">${g}</button>`).join('')}</div>
+  <p class="muted small">Пойдёшь по классам. Знаешь программу класса — сдай его итоговую контрольную и переходи к следующему.</p>`
+  : `<p class="muted small">Пойдёшь не по классам, а по ступеням: A1 → A2 → B1 → B2. Уже что-то знаешь — сдай контрольную ступени и иди дальше.</p>`}
   <div class="row-end"><button type="button" class="btn btn-ghost" data-act="back">Назад</button><button class="btn">Дальше</button></div>`;
 const stepGoal = () => `
-  <h2>Какая цель?</h2>
-  <div class="seg col">${Object.entries(TARGETS).map(([k, t]) => `<button type="button" class="opt ${onb.target === k ? 'sel' : ''}" data-target="${k}">${t}</button>`).join('')}</div>
+  <h2>Зачем тебе английский?</h2>
+  <div class="seg">${Object.entries(PURPOSES).map(([k, t]) => `<button type="button" class="opt ${onb.purpose === k ? 'sel' : ''}" data-purpose="${k}">${t}</button>`).join('')}</div>
+  <h3 class="h-sub">Какой уровень нужен?</h3>
+  <div class="seg col">${Object.entries(targetsFor(onb.place === 'school' ? 'school' : 'general')).map(([k, t]) => `<button type="button" class="opt ${onb.target === k ? 'sel' : ''}" data-target="${k}">${t}</button>`).join('')}</div>
   <h3 class="h-sub">Минут в день</h3>
   <div class="seg">${MINUTES.map(m => `<button type="button" class="opt ${onb.minutes === m ? 'sel' : ''}" data-min="${m}">${m}</button>`).join('')}</div>
   <h3 class="h-sub">Срок</h3>
@@ -730,7 +796,7 @@ const stepGoal = () => `
   <div class="row-end"><button type="button" class="btn btn-ghost" data-act="back">Назад</button><button class="btn">Посчитать план</button></div>`;
 function stepPlan() {
   const prev = P;
-  P = newProfile(onb.nick, null, onb.grade, { target: onb.target, minutes: onb.minutes, weeks: onb.weeks });
+  P = onbProfile(null);
   const pi = planInfo(), txt = planText(pi); P = prev;
   const lessonsDay = Math.max(1, Math.round(onb.minutes / 12));
   return `
@@ -738,7 +804,7 @@ function stepPlan() {
   <div class="plan-box ${pi.ok ? '' : 'warn'}">
     <p><b>Каждый день:</b> ${lessonsDay} ${plural(lessonsDay, 'урок', 'урока', 'уроков')} и повторение, около ${onb.minutes} минут.</p>
     <p>${esc(txt)}</p>
-    ${onb.grade > 5 ? `<p><b>Не с нуля?</b> На карте у каждого класса есть итоговая контрольная — сдай её на 80%, и класс засчитан.</p>` : ''}
+    ${onb.place !== 'school' || onb.grade > 5 ? `<p><b>Не с нуля?</b> У каждой ${onb.place === 'school' ? 'программы класса' : 'ступени'} есть итоговая контрольная — сдай её на 80%, и она засчитана.</p>` : ''}
   </div>
   <p class="muted small">Это программа сайта: грамматика, слова, перевод, аудирование. Для настоящего B2 добавь чтение книг и разговорную практику.</p>
   <div class="row-end"><button type="button" class="btn btn-ghost" data-act="back">Назад</button><button class="btn">Начать</button></div>`;
@@ -749,8 +815,9 @@ function bindOnb() {
     const b = e.target.closest('button[type=button]'); if (!b) return;
     if (b.dataset.act === 'back') { onb.step--; return renderAuth(); }
     if (b.dataset.act === 'cancel') { onb = null; app.innerHTML = ''; return renderAuth(); }
-    for (const k of ['grade', 'target', 'min', 'weeks']) if (b.dataset[k] != null) {
-      onb[k === 'min' ? 'minutes' : k] = k === 'target' ? b.dataset[k] : +b.dataset[k];
+    if (b.dataset.place) { onb.place = b.dataset.place; onb.target = onb.place === 'school' ? 'grade' : 'B1'; if (onb.place !== 'school') onb.purpose = onb.purpose === 'school' ? 'self' : onb.purpose; return renderAuth(); }
+    for (const k of ['grade', 'target', 'min', 'weeks', 'purpose']) if (b.dataset[k] != null) {
+      onb[k === 'min' ? 'minutes' : k] = ['target', 'purpose'].includes(k) ? b.dataset[k] : +b.dataset[k];
       $$(`[data-${k}]`, f).forEach(x => x.classList.toggle('sel', x === b));
     }
   });
@@ -770,7 +837,7 @@ function bindOnb() {
     }
     if (onb.step === 3) {
       const btn = f.querySelector('button:not([type])'); btn.disabled = true; btn.textContent = 'Создаю…';
-      const prof = newProfile(onb.nick, onb.pass ? await hashPass(onb.nick, onb.pass) : null, onb.grade, { target: onb.target, minutes: onb.minutes, weeks: onb.weeks });
+      const prof = onbProfile(onb.pass ? await hashPass(onb.nick, onb.pass) : null);
       DB.profiles[prof.nick] = prof; DB.current = prof.nick; P = prof; save();
       const pass = onb.pass; onb = null; chooseVoice();
       if (sb && pass) { const err = await cloudRegister(prof.nick, pass); if (err) toast(err + ' Пока прогресс сохраняется на этом устройстве; подключить облако можно в профиле.'); }
@@ -786,7 +853,7 @@ function renderPicker(names) {
   app.innerHTML = authFrame(`
     <div class="auth-card">
       ${names.length ? `<h2>Кто занимается?</h2>
-      <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<button class="who-btn" data-nick="${esc(n)}"><span class="ava">${esc(n[0].toUpperCase())}</span><span><b>${esc(n)}</b><small>${p.grade < 12 ? p.grade + ' класс' : 'не в школе'}, ${p.xp} XP${p.cloud ? ', в облаке' : ''}</small></span>${p.cloud ? icon('cloud', 'muted') : p.pass ? icon('lock', 'muted') : ''}</button>`; }).join('')}</div>
+      <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<button class="who-btn" data-nick="${esc(n)}"><span class="ava">${esc(n[0].toUpperCase())}</span><span><b>${esc(n)}</b><small>${isGen(p) ? 'своя программа' : p.grade + ' класс'}, ${p.xp} XP${p.cloud ? ', в облаке' : ''}</small></span>${p.cloud ? icon('cloud', 'muted') : p.pass ? icon('lock', 'muted') : ''}</button>`; }).join('')}</div>
       <form id="pw" class="hidden" novalidate><label class="field"><span>Пароль</span><input type="password" name="pass" autocomplete="current-password"></label><p class="err" id="err"></p><div class="row-end"><button class="btn">Войти</button></div></form>` : '<h2>Добро пожаловать</h2><p class="muted">Начни с нуля или войди, если уже занимаешься на другом устройстве.</p>'}
       <button class="btn btn-wide" data-act="new">Новый ученик</button>
       ${sb ? `<button class="btn btn-ghost btn-wide" data-act="cloud">${icon('cloud')}Уже занимаюсь — войти по нику</button>
@@ -848,7 +915,8 @@ function login(nick) {
   cloudReady = false;
   P = migrate(DB.profiles[nick]); DB.current = nick; save(); chooseVoice(); render.scrolled = false; viewGrade = null; cal = null;
   location.hash = '#/path'; render();
-  if (P.cloud) cloudPull();
+  isAdmin = false;
+  if (P.cloud) cloudPull().then(checkAdmin);
 }
 
 /* ================= карта ================= */
@@ -862,15 +930,15 @@ function viewPath(arg) {
   const G = COURSE[g], open = gradeOpen(g), gp = gradeProgress(g);
   const plaques = ALL_GRADES.map(n => {
     const o = gradeOpen(n), pass = gradePassed(n);
-    return `<a class="grade ${n === g ? 'on' : ''} ${o ? '' : 'locked'} ${pass ? 'passed' : ''}" href="#/path/${n}" aria-label="${n} класс"><b>${n}</b>${pass ? icon('check') : o ? `<span>${Math.round(gradeProgress(n) * 100)}%</span>` : icon('lock')}</a>`;
+    return `<a class="grade ${n === g ? 'on' : ''} ${o ? '' : 'locked'} ${pass ? 'passed' : ''}" href="#/path/${n}" aria-label="${gTitle(n)}"><b>${gShort(n)}</b>${pass ? icon('check') : o ? `<span>${Math.round(gradeProgress(n) * 100)}%</span>` : icon('lock')}</a>`;
   }).join('');
   const pd = SHOW_PHOTO_OF_DAY ? photoOfDay() : null, pq = pd && quoteFor(pd);
   return `
   <section class="hero ${pd ? 'hero-ph' : ''}">
-    <span class="ghost-num" aria-hidden="true">${pad2(g)}</span>
+    <span class="ghost-num" aria-hidden="true">${isGen() ? STAGES[g] : pad2(g)}</span>
     <div class="hero-t">
-      <p class="hero-lvl">${G.level}</p>
-      <h1>${G.title}</h1>
+      <p class="hero-lvl">${isGen() ? 'Уровень ' + LEVEL_OF(g) : G.level}</p>
+      <h1>${gTitle(g)}</h1>
       <div class="hero-bar"><i style="transform:scaleX(${gp})"></i></div>
       <p class="muted">${gradePassed(g) ? `Сдан на ${P.grades[g].best}%` : `${Math.round(gp * 100)}% пройдено, ${G.units.length} модулей, ${G.units.reduce((a, u) => a + u.lessons.length, 0)} уроков`}</p>
       <nav class="grades" aria-label="Классы">${plaques}</nav>
@@ -881,8 +949,8 @@ function viewPath(arg) {
     </figure>` : ''}
   </section>
   ${todayPanel()}
-  ${!open ? `<div class="banner">${icon('lock')}<div><b>${g} класс пока закрыт.</b> Сдай итоговую контрольную ${g - 1} класса — или пройди его модули.</div><a class="btn btn-sm" href="#/path/${g - 1}">К ${g - 1} классу</a></div>` : ''}
-  ${open && g === 5 && P.grade > 5 && !gradePassed(5) ? `<div class="banner">${icon('bolt')}<div><b>Ты в ${P.grade < 12 ? P.grade + ' классе' : 'старше школы'}.</b> Проходи классы контрольными: 40 заданий, 80% — и класс засчитан.</div><button class="btn btn-sm" data-final="5">Контрольная 5 класса</button></div>` : ''}
+  ${!open ? `<div class="banner">${icon('lock')}<div><b>${gTitle(g)} пока закрыта${isGen() ? '' : ''}.</b> Сдай итоговую контрольную ${gOf(g - 1)} — или пройди её модули.</div><a class="btn btn-sm" href="#/path/${g - 1}">Назад: ${gTitle(g - 1)}</a></div>` : ''}
+  ${open && g === 5 && (P.grade > 5 || isGen()) && !gradePassed(5) ? `<div class="banner">${icon('bolt')}<div><b>${isGen() ? 'Уже знаешь основы?' : `Ты в ${P.grade} классе.`}</b> Проходи ${isGen() ? 'ступени' : 'классы'} контрольными: 40 заданий, 80% — и ${isGen() ? 'ступень засчитана' : 'класс засчитан'}.</div><button class="btn btn-sm" data-final="5">Контрольная ${gOf(5)}</button></div>` : ''}
   <div class="route ${open ? '' : 'route-locked'}">
     ${G.units.map(unitHTML).join('')}
     ${finalHTML(g)}
@@ -929,7 +997,7 @@ function finalHTML(g) {
     <span class="ghost-num sm" aria-hidden="true">${pad2(g)}</span>
     ${icon('trophy', 'final-ic')}
     <h2>Итоговая контрольная</h2>
-    <p>${gradePassed(g) ? `Сдана на ${rec.best}%. ${g < 11 ? `Открыт ${g + 1} класс.` : 'Курс завершён.'}` : all ? '40 заданий по всему классу. Нужно 80%.' : 'Знаешь программу класса? Сдай на 80% — и весь класс засчитан, откроется следующий.'}</p>
+    <p>${gradePassed(g) ? `Сдана на ${rec.best}%. ${g < 11 ? `Открыта следующая: ${gTitle(g + 1)}.` : 'Курс завершён.'}` : all ? `40 заданий по всей ${isGen() ? 'ступени' : 'программе класса'}. Нужно 80%.` : `Уже знаешь эту программу? Сдай на 80% — и ${isGen() ? 'ступень засчитана' : 'класс засчитан'}, откроется следующ${isGen() ? 'ая' : 'ий'}.`}</p>
     ${open ? `<button class="btn ${all || gradePassed(g) ? '' : 'btn-ghost'}" data-final="${g}">${gradePassed(g) ? 'Пересдать' : all ? 'Начать контрольную' : 'Сдать экстерном'}</button>` : ''}
   </section>`;
 }
@@ -954,8 +1022,9 @@ function openPop(btn) {
   let t, s, act = null, label = '', extra = '';
   if (kind === 'lesson') {
     const l = LESSONS.get(key), d = lessonDone(l), o = lessonOpen(l);
-    t = l.t; s = `Урок ${l.index + 1} из ${l.unit.lessons.length}. ` + (d ? 'Пройден — можно повторить.' : o ? `Схема правила, слова и около ${buildLesson(l).length} заданий. ${LESSON_MIN(l.unit.grade) - 2}–${LESSON_MIN(l.unit.grade) + 2} минут.` : 'Сначала пройди предыдущий урок.');
-    if (l.topic) extra = `<a class="pop-topic" href="#/grammar/${l.topic.id}">${icon('scheme')}${esc(l.topic.t)}</a>`;
+    t = l.t; s = `Урок ${l.index + 1} из ${l.unit.lessons.length}. ` + (d ? 'Пройден — можно повторить.' : o ? '' : 'Сначала пройди предыдущий урок.');
+    extra = gainHTML(l, true);
+    if (l.topic) extra += `<a class="pop-topic" href="#/grammar/${l.topic.id}">${icon('scheme')}${esc(l.topic.t)}</a>`;
     if (o) { act = `lesson:${key}`; label = d ? 'Повторить' : 'Начать'; }
   } else {
     const u = UNITS.get(key), passed = unitPassed(u), all = unitLessonsDone(u) === u.lessons.length, rec = P.units[key];
@@ -964,7 +1033,7 @@ function openPop(btn) {
     if (gradeOpen(u.grade)) { act = `test:${key}`; label = passed ? 'Пересдать' : all ? 'Начать тест' : 'Сдать экстерном'; }
   }
   popEl = document.createElement('div'); popEl.className = 'pop';
-  popEl.innerHTML = `<h3>${esc(t)}</h3><p>${esc(s)}</p>${extra}${act ? `<button class="btn btn-wide btn-inv" data-go="${act}">${label}</button>` : ''}`;
+  popEl.innerHTML = `<h3>${esc(t)}</h3>${s ? `<p>${esc(s)}</p>` : ''}${extra}${act ? `<button class="btn btn-wide btn-inv" data-go="${act}">${label}</button>` : ''}`;
   const box = btn.closest('.stations') || btn.closest('.unit');
   box.appendChild(popEl);
   if (btn.classList.contains('st')) {
@@ -1086,6 +1155,96 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') $('.lb [data-lb="prev"]') && $('.lb [data-lb="prev"]').click();
 });
 
+/* ================= админ: ученики ================= */
+let ADM = null; // кэш строк из облака
+function viewAdmin(arg) {
+  return `<div class="page page-wide">
+    <section class="hero hero-plain">
+      <span class="ghost-num" aria-hidden="true">${ADM ? ADM.length : ''}</span>
+      <div class="hero-t"><p class="hero-lvl">Кабинет админа</p><h1>${arg ? 'Ученик' : 'Ученики'}</h1>
+      <p class="muted">${arg ? '' : 'Прогресс всех, кто занимается в облаке. Заметки учеников не показываются — это их личное.'}</p></div>
+    </section>
+    <div id="adm"><p class="muted">Загружаю…</p></div>
+  </div>`;
+}
+// временно «становимся» учеником, чтобы посчитать его прогресс теми же функциями
+function asStudent(data, fn) {
+  const keepP = P, keepA = isAdmin;
+  try { P = migrate(JSON.parse(JSON.stringify(data))); isAdmin = false; return fn(); } finally { P = keepP; isAdmin = keepA; }
+}
+const ago = iso => { const d = Math.floor((Date.now() - new Date(iso)) / 86400000); return d <= 0 ? 'сегодня' : d === 1 ? 'вчера' : `${d} ${plural(d, 'день', 'дня', 'дней')} назад`; };
+function studentSummary(row) {
+  return asStudent(row.data, () => {
+    const t = today(); let week = 0;
+    for (let d = t - 6; d <= t; d++) week += (P.days[d] && P.days[d].min) || 0;
+    const st = nextStep(), lb = stepLabel(st);
+    const curG = st ? (st.l ? st.l.unit.grade : st.u ? st.u.grade : st.g) : 11;
+    return {
+      nick: row.nick, mode: P.mode, label: isGen() ? 'своя программа' : `${P.grade} класс`,
+      xp: P.xp, lessons: Object.keys(P.lessons).length, units: Object.values(P.units).filter(u => u.passed).length,
+      streak: P.streak.last >= t - 1 ? P.streak.n : 0, week: Math.round(week), last: row.updated_at,
+      now: st ? `${gTitle(curG)}: ${lb.t}` : 'курс пройден', words: Object.keys(P.words).length,
+    };
+  });
+}
+async function loadAdmin(arg) {
+  const box = $('#adm'); if (!box) return;
+  if (!sb) { box.innerHTML = '<p class="empty">Нет связи с облаком.</p>'; return; }
+  try {
+    if (!ADM || !arg) { const { data, error } = await sb.from('progress').select('user_id,nick,updated_at,data').order('updated_at', { ascending: false }); if (error) throw error; ADM = data || []; }
+  } catch (e) { box.innerHTML = `<p class="empty">Не удалось загрузить: ${esc(cloudErr(e))}</p>`; return; }
+  if (route() !== 'admin') return;
+  if (arg) return adminDetail(box, ADM.find(r => r.nick === decodeURIComponent(arg)));
+  const list = ADM.map(studentSummary);
+  box.innerHTML = list.length ? `
+    <div class="stat-row">
+      <div class="stat"><b>${list.length}</b><span>учеников</span></div>
+      <div class="stat"><b>${list.filter(s => (Date.now() - new Date(s.last)) < 7 * 86400000).length}</b><span>активны за неделю</span></div>
+      <div class="stat"><b>${list.reduce((a, s) => a + s.lessons, 0)}</b><span>уроков всего</span></div>
+      <div class="stat"><b>${Math.round(list.reduce((a, s) => a + s.week, 0) / 60)}</b><span>часов за неделю</span></div>
+    </div>
+    <div class="adm-table">${list.map(s => `
+      <a class="adm-row" href="#/admin/${encodeURIComponent(s.nick)}">
+        <span class="ava">${esc(s.nick[0].toUpperCase())}</span>
+        <span class="adm-name"><b>${esc(s.nick)}</b><small>${esc(s.label)} · сейчас: ${esc(s.now)}</small></span>
+        <span class="adm-num"><b>${s.lessons}</b><small>уроков</small></span>
+        <span class="adm-num"><b>${s.week}</b><small>мин / 7 дн</small></span>
+        <span class="adm-num"><b>${s.streak}</b><small>серия</small></span>
+        <span class="adm-num"><b>${s.xp}</b><small>опыт</small></span>
+        <span class="adm-last">${ago(s.last)}</span>
+      </a>`).join('')}</div>` : '<p class="empty">Пока никто не занимается в облаке.</p>';
+}
+function adminDetail(box, row) {
+  if (!row) { box.innerHTML = '<p class="empty">Ученик не найден.</p>'; return; }
+  const html = asStudent(row.data, () => {
+    const t = today(), days = [];
+    for (let d = t - 13; d <= t; d++) days.push({ d, m: Math.round((P.days[d] && P.days[d].min) || 0) });
+    const max = Math.max(P.goal.minutes, ...days.map(x => x.m));
+    const logs = [];
+    for (let d = t; d > t - 30 && logs.length < 20; d--) for (const l of ((P.days[d] && P.days[d].log) || []).slice().reverse()) logs.push({ d, l });
+    const tests = Object.entries(P.units).map(([k, v]) => ({ u: UNITS.get(k), v })).filter(x => x.u);
+    return `
+      <a class="back" href="#/admin">${icon('back')}Все ученики</a>
+      <div class="me-head"><span class="ava big">${esc(P.nick[0].toUpperCase())}</span><div class="me-name"><h2 class="page-h">${esc(P.nick)}</h2>
+        <p class="muted">${isGen() ? 'Своя программа' : P.grade + ' класс'}${P.purpose ? ', ' + esc(PURPOSES[P.purpose] || '') : ''} · цель: ${esc(goalName())}, ${P.goal.minutes} мин/день · с ${new Date(P.created).toLocaleDateString('ru-RU')}</p></div></div>
+      <div class="stat-row">
+        <div class="stat"><b>${Object.keys(P.lessons).length}</b><span>уроков</span></div>
+        <div class="stat"><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
+        <div class="stat"><b>${P.streak.best}</b><span>лучшая серия</span></div>
+        <div class="stat"><b>${Object.keys(P.words).length}</b><span>слов</span></div>
+      </div>
+      <h3 class="h-sub">Последние 14 дней</h3>
+      <div class="adm-chart">${days.map(x => `<div class="adm-bar ${x.m >= P.goal.minutes ? 'ok' : ''}" title="${fmtDate(x.d)}: ${x.m} мин"><i style="height:${Math.max(2, x.m / max * 100)}%"></i><span>${dayToDate(x.d).getDate()}</span></div>`).join('')}</div>
+      <p class="muted small">Высота столбика — минуты за день; яркие — норма выполнена (${P.goal.minutes} мин).</p>
+      <h3 class="h-sub">${isGen() ? 'Ступени' : 'Классы'}</h3>
+      <div class="grade-list">${ALL_GRADES.map(g => `<div class="gl-row"><b>${gShort(g)}</b><div class="gl-bar"><i style="transform:scaleX(${gradeProgress(g)})"></i></div><span>${gradePassed(g) ? `сдан, ${P.grades[g].best}%` : gradeOpen(g) ? Math.round(gradeProgress(g) * 100) + '%' : 'закрыт'}</span></div>`).join('')}</div>
+      ${tests.length ? `<h3 class="h-sub">Тесты модулей</h3><ul class="cd-log">${tests.map(x => `<li>${esc(gTitle(x.u.grade))}, «${esc(x.u.title)}»: лучший ${x.v.best}% ${x.v.passed ? '— сдан' : '— не сдан'}</li>`).join('')}</ul>` : ''}
+      <h3 class="h-sub">Что делал</h3>
+      ${logs.length ? `<ul class="cd-log">${logs.map(x => `<li><span class="muted">${fmtDate(x.d)}:</span> ${esc(x.l)}</li>`).join('')}</ul>` : '<p class="empty">Пока нет записей.</p>'}`;
+  });
+  box.innerHTML = html;
+}
+
 function viewReview() {
   const due = dueWords(), di = dueItems(), known = Object.keys(P.words).length;
   const weak = Object.entries(P.words).sort((a, b) => a[1].s - b[1].s).slice(0, 12).map(([en]) => wordByEn(en)).filter(Boolean);
@@ -1125,7 +1284,7 @@ function viewMe() {
     <div class="grade-list">${ALL_GRADES.map(g => `<div class="gl-row"><b>${g}</b><div class="gl-bar"><i style="transform:scaleX(${gradeProgress(g)})"></i></div><span>${gradePassed(g) ? `сдан, ${P.grades[g].best}%` : gradeOpen(g) ? Math.round(gradeProgress(g) * 100) + '%' : 'закрыт'}</span></div>`).join('')}</div>
     <h2 class="h-sub">Цель</h2>
     <div class="goal-form">
-      <div class="seg">${Object.entries(TARGETS).map(([k, t]) => `<button class="opt ${P.goal.target === k ? 'sel' : ''}" data-target="${k}">${t}</button>`).join('')}</div>
+      <div class="seg">${Object.entries(targetsFor(P.mode)).map(([k, t]) => `<button class="opt ${P.goal.target === k ? 'sel' : ''}" data-target="${k}">${t}</button>`).join('')}</div>
       <div class="seg">${MINUTES.map(m => `<button class="opt ${P.goal.minutes === m ? 'sel' : ''}" data-min="${m}">${m} мин</button>`).join('')}</div>
       <div class="seg">${DEADLINES.map(([w, t]) => `<button class="opt ${P.goal.weeks === w ? 'sel' : ''}" data-weeks="${w}">${t}</button>`).join('')}</div>
       <p class="plan-box ${pi.ok ? '' : 'warn'}">${esc(planText(pi))}</p>
@@ -1148,7 +1307,7 @@ function viewMe() {
 }
 /* ---- имя ---- */
 function meHeadHTML(edit = false) {
-  const sub = `${P.grade < 12 ? P.grade + ' класс' : 'Не в школе'}, с ${new Date(P.created).toLocaleDateString('ru-RU')}`;
+  const sub = `${isGen() ? 'Своя программа' + (P.purpose ? ', ' + PURPOSES[P.purpose].toLowerCase() : '') : P.grade + ' класс'}, с ${new Date(P.created).toLocaleDateString('ru-RU')}`;
   if (!edit) return `<span class="ava big">${esc(P.nick[0].toUpperCase())}</span>
     <div class="me-name"><h1 class="page-h">${esc(P.nick)}</h1><p class="muted">${sub}</p></div>
     <div class="me-btns"><button class="btn btn-ghost btn-sm" data-me="rename">${icon('pencil')}Изменить имя</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon('door')}Выйти</button></div>`;
@@ -1393,7 +1552,7 @@ function confirmBox(text, yes, no) {
 let S = null;
 function startLesson(l) { S = { mode: 'lesson', title: l.t, l, queue: buildLesson(l), intro: ['theory', 'words'] }; openPlayer(); }
 function startTest(u) { S = { mode: 'test', title: `Тест: ${u.title}`, u, queue: buildUnitTest(u), intro: ['testinfo'] }; openPlayer(); }
-function startFinal(g) { S = { mode: 'final', g, title: `Итоговая контрольная, ${g} класс`, queue: buildFinal(g), intro: ['testinfo'] }; openPlayer(); }
+function startFinal(g) { S = { mode: 'final', g, title: `Итоговая контрольная: ${gTitle(g)}`, queue: buildFinal(g), intro: ['testinfo'] }; openPlayer(); }
 function startPractice(t) { S = { mode: 'practice', topic: t, title: t.t, queue: buildPractice(t), intro: [] }; openPlayer(); }
 function startReview() {
   if (!Object.keys(P.words).length) return toast('Сначала пройди хотя бы один урок.');
@@ -1480,7 +1639,8 @@ function showIntro(kind) {
   let html = '';
   if (kind === 'theory') {
     const l = S.l, t = l.topic;
-    html = `<p class="ex-kicker">${l.unit.grade} класс. ${esc(l.unit.title)}, урок ${l.index + 1}</p><h2 class="ex-title">${esc(l.t)}</h2>
+    html = `<p class="ex-kicker">${gTitle(l.unit.grade)}. ${esc(l.unit.title)}, урок ${l.index + 1}</p><h2 class="ex-title">${esc(l.t)}</h2>
+      ${gainHTML(l)}
       ${t ? `<section class="g-card"><p class="g-card-k">${icon('scheme')}Грамматика: ${esc(t.t)}</p>${topicHTML(t, { practice: false })}</section>` : ''}
       ${l.th ? `<section class="theory card"><p class="g-card-k">В этом уроке</p>${theoryHTML(l.th)}</section>` : ''}`;
   }
@@ -1491,7 +1651,7 @@ function showIntro(kind) {
       <div class="card info">
         <p>${S.total} заданий. Чтобы сдать, нужно <b>80%</b> — не больше ${allowed} ${plural(allowed, 'ошибки', 'ошибок', 'ошибок')}.</p>
         <p>Подсказок и повторов нет. Половина — на ввод: раскрыть скобки, перевести, записать на слух${TTS.ok ? '' : ' (на этом устройстве нет английского голоса — аудио заменено)'}.</p>
-        <p>${S.mode === 'final' ? `Сдашь — ${S.g} класс засчитан${S.g < 11 ? `, откроется ${S.g + 1}-й` : ''}.` : 'Сдашь — модуль закрыт, даже если уроки не пройдены.'}</p>
+        <p>${S.mode === 'final' ? `Сдашь — ${gTitle(S.g)} засчитан${isGen() ? 'а' : ''}${S.g < 11 ? `, откроется ${gTitle(S.g + 1)}` : ''}.` : 'Сдашь — модуль закрыт, даже если уроки не пройдены.'}</p>
       </div>`;
   }
   const st = swapStage(html);
@@ -1671,7 +1831,7 @@ function finish() {
     } else {
       const rec = P.grades[S.g] || {};
       P.grades[S.g] = { best: Math.max(rec.best || 0, acc), passed: rec.passed || passed, at: t };
-      title = passed ? `${S.g} класс сдан` : 'Контрольная пока не сдана';
+      title = passed ? `${gTitle(S.g)} — сдано` : 'Контрольная пока не сдана';
       if (passed) viewGrade = Math.min(11, S.g + 1);
     }
     xp = passed ? (S.mode === 'final' ? 60 : 25) : 5;
@@ -1682,7 +1842,7 @@ function finish() {
   // дневник для календаря
   const logLine = S.mode === 'lesson' ? `Урок «${S.l.t}» — ${acc}%`
     : S.mode === 'test' ? `Тест модуля «${S.u.title}» — ${acc}%${passed ? ', сдан' : ''}`
-    : S.mode === 'final' ? `Итоговая ${S.g} класса — ${acc}%${passed ? ', сдана' : ''}`
+    : S.mode === 'final' ? `Итоговая ${gOf(S.g)} — ${acc}%${passed ? ', сдана' : ''}`
     : S.mode === 'practice' ? `Тема «${S.topic.t}» — ${acc}%` : 'Повторение';
   (d.log = d.log || []).push(logLine);
   const newCards = passed && S.mode !== 'review' ? unlockCards(S.mode === 'final' ? 3 : S.mode === 'test' ? 2 : 1) : [];

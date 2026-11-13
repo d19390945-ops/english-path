@@ -30,3 +30,12 @@ language sql security definer set search_path = public, auth as $$
 $$;
 revoke all on function public.login_email(text) from public;
 grant execute on function public.login_email(text) to anon, authenticated;
+
+-- Админы: видят прогресс всех учеников (только чтение).
+create table if not exists public.admins (user_id uuid primary key references auth.users (id) on delete cascade);
+alter table public.admins enable row level security;
+drop policy if exists "admins: self" on public.admins;
+create policy "admins: self" on public.admins for select using (auth.uid() = user_id);
+drop policy if exists "admin: read all" on public.progress;
+create policy "admin: read all" on public.progress for select using (exists (select 1 from public.admins a where a.user_id = auth.uid()));
+-- Назначить админа:  insert into public.admins (user_id) select user_id from public.progress where lower(nick) = lower('ZXCVBN');

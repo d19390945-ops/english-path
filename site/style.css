@@ -721,29 +721,25 @@ select { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line-s
   .lb-fig img { max-height: calc(100vh - 260px); }
 }
 
-/* ================= большое фото в уроке ================= */
+/* ================= большое фото в уроке: за заданиями ================= */
 .card-note { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--hi); font-size: 14px; font-weight: 500; }
 .card-note:hover { border-color: var(--hi); }
-.p-photo { position: absolute; top: 16px; bottom: 16px; left: 16px; width: calc(44vw - 32px); overflow: hidden; background: var(--surface); z-index: 0; border-radius: 32px; }
-.p-photo img.pp { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; opacity: 0; transform: scale(1.06); transition: opacity 1.2s ease, transform 14s linear; }
+.p-photo { position: absolute; inset: 0; overflow: hidden; background: var(--paper); z-index: 0; }
+.p-photo img.pp { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; opacity: 0; transform: scale(1.06); filter: brightness(.36) saturate(.85); transition: opacity 1.4s ease, transform 16s linear; }
 .p-photo img.pp.on { opacity: 1; transform: scale(1); }
-.p-photo::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(8, 8, 10, .85) 0%, rgba(8, 8, 10, 0) 40%); }
-.pp-cap { position: absolute; left: 36px; right: 22%; bottom: 36px; z-index: 2; opacity: 0; transform: translateY(8px); transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out); }
-.pp-cap.on { opacity: 1; transform: none; }
-.pp-cap .ph-q p { font-size: clamp(20px, 2.1vw, 28px); text-shadow: 0 2px 18px rgba(0, 0, 0, .6); }
-.player.has-photo > .p-top, .player.has-photo > .p-stage, .player.has-photo > .p-foot { margin-left: 44vw; position: relative; z-index: 1; }
-.player.has-photo .p-inner { max-width: 640px; }
+.p-photo::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 60% 70% at 50% 45%, rgba(8, 8, 10, .55), rgba(8, 8, 10, .15) 70%), linear-gradient(180deg, rgba(8, 8, 10, .5) 0%, rgba(8, 8, 10, .1) 30%, rgba(8, 8, 10, .75) 100%); }
+.pp-cap { display: none; }
+.player.has-photo > .p-top, .player.has-photo > .p-stage, .player.has-photo > .p-foot { position: relative; z-index: 1; }
+.player.has-photo .p-foot:not(.ok):not(.bad) { background: color-mix(in srgb, var(--surface) 70%, transparent); backdrop-filter: blur(12px); border-color: transparent; }
+.player.has-photo .opt, .player.has-photo .tile, .player.has-photo .type-in, .player.has-photo .q-sent, .player.has-photo .card.info,
+.player.has-photo .g-card, .player.has-photo .theory.card, .player.has-photo .wordlist li, .player.has-photo .stat, .player.has-photo .mist li,
+.player.has-photo .gain, .player.has-photo .say:not(.say-big) { background: color-mix(in srgb, var(--surface) 72%, transparent); backdrop-filter: blur(8px); }
+.player.has-photo .opt.sel { background: color-mix(in srgb, var(--hi) 22%, var(--surface)); }
+.player.has-photo .opt.ok { background: color-mix(in srgb, var(--ok-soft) 85%, transparent); }
+.player.has-photo .opt.bad { background: color-mix(in srgb, var(--bad-soft) 85%, transparent); }
+.player.has-photo .ex-title, .player.has-photo .q-word, .player.has-photo .gap-s, .player.has-photo .form-s { text-shadow: 0 2px 16px rgba(0, 0, 0, .55); }
 @media (prefers-reduced-motion: reduce) { .p-photo img.pp { transition: opacity 400ms ease; transform: none; } }
-
-@media (max-width: 1000px) {
-  .p-photo { width: auto; right: 0; top: 0; bottom: 0; left: 0; border-radius: 0; }
-  .p-photo img.pp { filter: brightness(.34) saturate(.9); }
-  .p-photo::after { background: linear-gradient(180deg, rgba(17, 24, 29, .55) 0%, rgba(17, 24, 29, .35) 40%, rgba(17, 24, 29, .9) 100%); }
-  .pp-cap { display: none; }
-  .player.has-photo > .p-top, .player.has-photo > .p-stage, .player.has-photo > .p-foot { margin-left: 0; }
-  .player.has-photo .p-foot:not(.ok):not(.bad) { background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(10px); }
-  .player.has-photo .q-sent, .player.has-photo .card.info, .player.has-photo .g-card, .player.has-photo .theory.card { background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(6px); }
-}
 
 /* ================= фото модулей на карте ================= */
 .route { max-width: 940px; }
@@ -757,7 +753,7 @@ select { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line-s
 .unit-body.with-ph.names-right .st-name { left: calc(100% + 14px); right: auto; text-align: left; }
 .unit-body.with-ph.names-left .st-name { right: calc(100% + 14px); left: auto; text-align: right; }
 .unit-photo { position: relative; margin: 0; border-radius: 32px; overflow: hidden; aspect-ratio: 4 / 5; max-height: 640px; border: 1px solid var(--line); box-shadow: 0 30px 70px rgba(0, 0, 0, .45); background: var(--surface); }
-.unit-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; display: block; transition: filter 600ms ease, transform 1.2s var(--ease-out); }
+.unit-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; display: block; filter: grayscale(1) contrast(1.05) brightness(.9); transition: filter 600ms ease, transform 1.2s var(--ease-out); }
 .unit-photo:hover img { transform: scale(1.03); }
 .unit-photo figcaption { position: absolute; inset: auto 0 0 0; padding: 70px 22px 20px; background: linear-gradient(to top, rgba(10, 14, 17, .9), rgba(10, 14, 17, 0)); }
 .unit-photo .ph-q p { font-size: 20px; }
@@ -844,3 +840,20 @@ body[data-sec="me"], body[data-sec="admin"] {
   .adm-row { grid-template-columns: auto minmax(0, 1fr) 64px 64px; }
   .adm-row .adm-num:nth-of-type(4), .adm-row .adm-num:nth-of-type(5), .adm-last { display: none; }
 }
+
+/* ---------- профиль с фото ---------- */
+.me-cover { position: relative; border-radius: 32px; overflow: hidden; padding: 120px 28px 26px; background: var(--surface); border: 1px solid var(--line); }
+.me-cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; filter: grayscale(.35) brightness(.5); }
+.me-cover.has-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 10, 12, 0) 20%, rgba(10, 10, 12, .85) 100%); }
+.me-cover .me-head { position: relative; z-index: 1; }
+.me-cover .page-h { text-shadow: 0 2px 20px rgba(0, 0, 0, .6); }
+.me-cover .muted { color: var(--ink-2); }
+.me-cover .ava.big { box-shadow: 0 0 0 4px rgba(10, 10, 12, .5); }
+.me-cover .btn-ghost { background: rgba(20, 20, 24, .45); backdrop-filter: blur(8px); }
+.photo-card { position: relative; overflow: hidden; padding: 20px; border-radius: 28px; border: 1px solid var(--line); background: var(--surface); }
+.photo-card > * { position: relative; z-index: 1; }
+.photo-card > .photo-card-bg { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(.5) brightness(.28); }
+.photo-card .opt { background: color-mix(in srgb, var(--surface) 70%, transparent); backdrop-filter: blur(6px); }
+.photo-card .opt.sel { background: color-mix(in srgb, var(--hi) 26%, var(--surface)); }
+.photo-card .plan-box { background: color-mix(in srgb, var(--surface) 75%, transparent); backdrop-filter: blur(6px); }
+@media (max-width: 600px) { .me-cover { padding: 90px 18px 20px; border-radius: 26px; } }

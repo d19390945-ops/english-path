@@ -1266,7 +1266,11 @@ function viewMe() {
   const lessons = Object.keys(P.lessons).length, pi = planInfo();
   return `
   <div class="page">
-    <div class="me-head" id="mehead">${meHeadHTML()}</div>
+    ${(() => { const cv = PHOTOS.length ? PHOTOS[strHash('cover' + P.nick + today()) % PHOTOS.length] : null; return `
+    <section class="me-cover ${cv ? 'has-img' : ''}">
+      ${cv ? `<img class="me-cover-img" src="${photoSrc(cv)}" alt="">` : ''}
+      <div class="me-head" id="mehead">${meHeadHTML()}</div>
+    </section>`; })()}
     <section class="cloud-card" id="cloudcard">${cloudCardHTML()}</section>
     <div class="stat-row">
       <div class="stat"><b>${P.xp}</b><span>опыт</span></div>
@@ -1283,7 +1287,7 @@ function viewMe() {
     <h2 class="h-sub">Классы</h2>
     <div class="grade-list">${ALL_GRADES.map(g => `<div class="gl-row"><b>${g}</b><div class="gl-bar"><i style="transform:scaleX(${gradeProgress(g)})"></i></div><span>${gradePassed(g) ? `сдан, ${P.grades[g].best}%` : gradeOpen(g) ? Math.round(gradeProgress(g) * 100) + '%' : 'закрыт'}</span></div>`).join('')}</div>
     <h2 class="h-sub">Цель</h2>
-    <div class="goal-form">
+    <div class="goal-form photo-card">${(() => { const gp = PHOTOS.length ? PHOTOS[strHash('goal' + P.nick) % PHOTOS.length] : null; return gp ? `<img class="photo-card-bg" src="${photoSrc(gp)}" alt="" loading="lazy">` : ''; })()}
       <div class="seg">${Object.entries(targetsFor(P.mode)).map(([k, t]) => `<button class="opt ${P.goal.target === k ? 'sel' : ''}" data-target="${k}">${t}</button>`).join('')}</div>
       <div class="seg">${MINUTES.map(m => `<button class="opt ${P.goal.minutes === m ? 'sel' : ''}" data-min="${m}">${m} мин</button>`).join('')}</div>
       <div class="seg">${DEADLINES.map(([w, t]) => `<button class="opt ${P.goal.weeks === w ? 'sel' : ''}" data-weeks="${w}">${t}</button>`).join('')}</div>

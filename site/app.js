@@ -236,6 +236,7 @@ function mergeP(a, b) {
   out.topics = mo(out.topics, b.topics, mx);
   out.stats = mo(out.stats, b.stats, mx);
   out.xpDev = mo(out.xpDev, b.xpDev, mx);
+  if (b.settings && b.settings.hideCloud && out.settings) out.settings.hideCloud = true; // «скрыть навсегда» — на всех устройствах
   out.days = mo(out.days, b.days, (x, y) => {
     const dev = mo(x.dev, y.dev, (p, q) => ({ min: mx(p.min, q.min), xp: mx(p.xp, q.xp) }));
     const r = { dev, log: uniq([...(x.log || []), ...(y.log || [])]) };
@@ -1271,7 +1272,7 @@ function viewMe() {
       ${cv ? `<img class="me-cover-img" src="${photoSrc(cv)}" alt="">` : ''}
       <div class="me-head" id="mehead">${meHeadHTML()}</div>
     </section>`; })()}
-    <section class="cloud-card" id="cloudcard">${cloudCardHTML()}</section>
+    ${sb && P.cloud && P.settings.hideCloud ? '' : `<section class="cloud-card" id="cloudcard">${cloudCardHTML()}</section>`}
     <div class="stat-row">
       <div class="stat"><b>${P.xp}</b><span>опыт</span></div>
       <div class="stat"><b>${P.streak.best}</b><span>лучшая серия</span></div>
@@ -1350,7 +1351,8 @@ function cloudCardHTML() {
   if (!sb) return `<div class="cc-row">${icon('cloud')}<div><b>Облако недоступно</b><p class="muted small">Нет связи с сервером — прогресс сохраняется только на этом устройстве.</p></div></div>`;
   if (P.cloud) return `<div class="cc-row">${icon('cloud')}<div><b>Прогресс сохраняется в облаке</b>
     <p class="muted small">На другом устройстве открой сайт → «Уже занимаюсь — войти по нику» → ник <b>${esc(P.nick)}</b> и твой пароль. Уроки, календарь и заметки подтянутся сами.</p></div>
-    <button class="btn btn-ghost btn-sm" data-cc="sync">${icon('repeat')}Обновить</button></div>`;
+    <button class="btn btn-ghost btn-sm" data-cc="sync">${icon('repeat')}Обновить</button>
+    <button class="btn btn-ghost btn-sm cc-x" data-cc="hide" title="Скрыть и больше не показывать" aria-label="Скрыть и больше не показывать">${icon('x')}</button></div>`;
   return `<div class="cc-row">${icon('cloud')}<div><b>Облако не подключено</b>
     <p class="muted small">Сейчас прогресс живёт только в этом браузере. Подключи облако — и занимайся с телефона, планшета и других компьютеров.</p></div></div>
     <form class="cc-form" id="ccform" novalidate>
@@ -1364,6 +1366,7 @@ function bindCloudCard() {
   const box = $('#cloudcard'); if (!box) return;
   box.addEventListener('click', async e => {
     const b = e.target.closest('[data-cc]'); if (!b) return;
+    if (b.dataset.cc === 'hide') { P.settings.hideCloud = true; save(); box.remove(); return; }
     b.disabled = true; await cloudPull(); b.disabled = false; toast(cloudState === 'ok' ? 'Всё синхронизировано' : 'Нет связи с облаком');
   });
   const f = $('#ccform', box); if (!f) return;

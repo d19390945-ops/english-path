@@ -351,6 +351,8 @@ body { overflow-x: clip; }
 .cc-row > .ic { width: 26px; height: 26px; margin-top: 2px; }
 .cc-row > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .cc-row .btn { flex: none; }
+.cc-row .cc-x { padding: 8px; min-width: 0; }
+.cc-row .cc-x .ic { margin: 0; }
 .cc-form { display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
 @media (max-width: 600px) { .cloud-t { display: none; } .cc-row { flex-wrap: wrap; } }
 

@@ -8,7 +8,7 @@
       [{ "text": "📚 Что внутри", "page": "inside" }, { "text": "💵 Внутренняя валюта", "page": "game" }],
       [{ "text": "🧭 С чего начать", "page": "how" }, { "text": "🎓 Ученику", "page": "student" }],
       [{ "text": "💡 Предложить идею", "idea": true }],
-      [{ "text": "📣 Наш канал", "channel": true }]
+      [{ "text": "📣 Наш канал", "url": "https://t.me/YourRoadtotheUSA" }]
     ]
   },
 

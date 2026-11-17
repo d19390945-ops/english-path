@@ -1,0 +1,267 @@
+0	The verb to be: am, is, are
+1	Every English sentence has a verb. If there's no action, we use "to be": am, is, are.
+2	Who
+3	Form
+4	Short form
+5	Not "I twelve", but I am twelve. Age, job, place, mood — always with to be.
+6	To say what you own, English says "I have got": I have got a brother.
+7	In American English people usually just say have: Do you have a pen? Both are correct.
+8	Articles a / an / the
+9	a / an — "some, one of many". the — "that particular one, we know which".
+10	first mention
+11	one of many
+12	jobs: She is a nurse.
+13	an — before a vowel sound: an apple, an hour
+14	we've already talked about it
+15	the only one: the sun, the Moon
+16	clear from the situation: Close the door.
+17	with superlatives: the best
+18	No article: names, cities, countries (London, Spain), food and materials in general (I like milk), plurals in general (Dogs are clever).
+19	Plurals
+20	Usually + s. But there are rules for some endings and a short list of exceptions.
+21	Rules
+22	Exceptions — learn them
+23	One
+24	Many
+25	Near
+26	Far
+27	After these / those — always are and a plural noun: These are…, Those are…
+28	Whose? my, his… and 's
+29	Who → whose
+30	one owner
+31	Tom's bike — the bike that belongs to Tom
+32	the children's room (children has no -s)
+33	several owners ending in -s
+34	my parents' car — the car that belongs to my parents
+35	its — about a thing or an animal. it's = it is. Don't mix them up!
+36	We say that something exists somewhere. The place usually comes at the end.
+37	can = be able to, know how to, be allowed to. One form for everyone, no -s and no to.
+38	Mistake: He cans, can to swim. Correct: He can swim.
+39	The imperative
+40	we
+41	Things that happen usually, regularly, always. Facts and habits.
+42	every day
+43	The action repeats — in the past, now and in the future.
+44	Endings with he / she / it
+45	After does / doesn't the verb has no -s: Does she play? She doesn't play.
+46	Adverbs of frequency
+47	How often
+48	Word
+49	Before the main verb
+50	After am / is / are
+51	Things happening right now, at this moment — or around this period.
+52	now
+53	An action in progress: it has started and hasn't finished yet.
+54	How to add -ing
+55	write (drop the e)
+56	swim, run, sit (double the consonant)
+57	Present Simple or Continuous?
+58	Present Simple — usually
+59	habits, timetables, facts
+60	Present Continuous — now
+61	a process at the moment of speaking
+62	Dots — what usually happens. A line — what is going on now.
+63	Verbs of feeling and thinking don't usually take -ing: I like, I know, I want, I understand (not I am knowing).
+64	Countable
+65	Uncountable
+66	Positive
+67	Question / negative
+68	not only in positive sentences
+69	a request
+70	(some here, even though it's a question)
+71	Prepositions of place and time
+72	Time
+73	Place
+74	An exact time or point — at. A day or a surface — on. A period or the space inside — in.
+75	The past of to be
+76	The action happened and finished in the past. When matters: yesterday, last year, in 2015.
+77	yesterday
+78	One finished point in the past.
+79	~V-ed / 2nd form
+80	Regular and irregular
+81	After did / didn't — the base form: Did you go? (not went). I didn't see (not saw).
+82	Plans and intentions: you've already decided what you'll do. Also — something about to happen (you can see the signs).
+83	plan
+84	The decision exists now, the action is in the future.
+85	will — a decision made right now, a promise, a prediction "I think…".
+86	tomorrow
+87	A point in the future.
+88	decided just now: I'll help you!
+89	opinion: I think it will rain.
+90	a promise: I'll call you.
+91	a plan made earlier: I'm going to visit Rome.
+92	you can see the signs: Look, it's going to rain!
+93	I think it's necessary myself
+94	mustn't — it's not allowed: You mustn't smoke here.
+95	circumstances require it
+96	don't have to — it's not necessary: You don't have to come.
+97	The main trap: mustn't = it's forbidden, but don't have to = you don't need to.
+98	Comparison of adjectives
+99	Short adjectives
+100	big (double the consonant)
+101	Long adjectives
+102	Exceptions
+103	Questions and question words
+104	Wh-word
+105	*aux. verb
+106	Meaning
+107	what, which
+108	where
+109	when
+110	why
+111	who
+112	how
+113	how much / how many
+114	which (of)
+115	If we ask about the subject (who did it?), we don't need an auxiliary: Who broke the window? (not Who did break).
+116	The action was in progress at some moment in the past. Often it's the background when something else happened.
+117	A long action (a line) is interrupted by a short one (a dot).
+118	Past Continuous — background
+119	while — during
+120	Past Simple — event
+121	when — at the moment
+122	The past that matters now: there's a result or an experience. Exactly when isn't important.
+123	result now
+124	The arc connects a past action with the present.
+125	Third form (V3)
+126	Present Perfect or Past Simple?
+127	when doesn't matter, the result does
+128	there's a specific time in the past
+129	The arc — a link with "now" (Present Perfect). Just a dot — a closed past (Past Simple).
+130	As soon as the sentence says "when" (yesterday, in 2019, ago) — only Past Simple.
+131	A habit or state in the past that is no longer true.
+132	before
+133	not anymore
+134	It used to repeat, now it has stopped.
+135	The future: will, going to, Continuous
+136	When
+137	Example
+138	a decision now, a prediction, a promise
+139	a plan, an intention; you can see the signs
+140	an arrangement with a time and place
+141	a timetable
+142	After when, if, before, after, as soon as we talk about the future with the Present Simple: When I get home, I'll call you.
+143	Conditionals: zero and first
+144	Type
+145	If-clause
+146	Main clause
+147	Meaning
+148	always true (facts)
+149	possible in the future
+150	The main mistake: will in the if-clause. Not If it will rain, but If it rains.
+151	Verb
+152	advice: it's a good idea
+153	possible (might — less sure)
+154	ability in the past; a polite request
+155	polite permission
+156	*modal
+157	*modal + not
+158	Relative clauses: who, which, that, where
+159	About whom / what
+160	people
+161	things, animals
+162	people and things (not after a comma)
+163	whose
+164	place
+165	If who / which / that is the object, you can leave it out: The book (that) I read was great.
+166	Gerund or infinitive
+167	after prepositions: good at drawing
+168	adjective + to: easy to learn
+169	stop smoking — give up smoking; stop to smoke — stop in order to smoke. The meaning changes!
+170	too and enough
+171	too much
+172	~adjective
+173	enough
+174	noun
+175	Adjectives ending in -ed and -ing
+176	-ed — how I feel
+177	-ing — what causes the feeling
+178	The action started in the past and is still going on (or has just finished and you can see the traces). The process and its duration matter.
+179	The line stretches from the past right up to "now".
+180	Perfect Continuous — the process
+181	How long?
+182	Present Perfect — the result
+183	How much is done?
+184	"The past before the past": the action happened before another moment in the past.
+185	First one thing (Past Perfect), then another (Past Simple).
+186	The passive voice
+187	What matters is not who did it, but what was done to the object. The object becomes the subject.
+188	formula
+189	*be (in the right tense)
+190	Passive
+191	modals
+192	Reported speech
+193	We retell someone's words. If "said" is in the past, the tense moves one step back.
+194	Tense shift
+195	Words change too
+196	Questions
+197	word order — as in a statement!
+198	Requests and orders
+199	The second conditional
+200	Unreal or unlikely now and in the future: "if…, I would…".
+201	then
+202	1st type — real
+203	(I'll probably have time)
+204	2nd type — unreal
+205	(but I don't have time)
+206	With to be you can use were for everyone: If I were you, I would… — giving advice.
+207	Regret about…
+208	the present
+209	I wish I had a dog. = I don't have a dog, and I'm sorry about it.
+210	the past
+211	I wish I had studied. = I didn't study, and I regret it.
+212	annoyance, other people's behaviour
+213	I wish you would stop! = Please, stop it!
+214	The wish is the opposite of reality: I'm not tall → I wish I were tall.
+215	State verbs
+216	These verbs describe a state, not an action, so they don't usually take -ing.
+217	Group
+218	Verbs
+219	feelings
+220	thoughts
+221	know, believe, understand, remember, think (= have an opinion)
+222	possession
+223	have (= own), own, belong
+224	senses
+225	state
+226	I think it's good. (opinion)
+227	She has a car. (owns)
+228	action — -ing is possible
+229	I'm thinking about it. (considering)
+230	She's having lunch. (eating)
+231	Question tags
+232	"…, isn't it?" A positive sentence gets a negative tag, and the other way round.
+233	Special cases: I am → aren't I? Let's → shall we? Imperative → will you?
+234	The process lasted up to a certain moment in the past.
+235	The line runs up to a point in the past.
+236	Future Continuous and Future Perfect
+237	Future Continuous: at a moment in the future the action will be in progress.
+238	Future Perfect: by a moment in the future the action will already be finished.
+239	More complex passive and have something done
+240	causative
+241	The third and mixed conditionals
+242	The third conditional — about a past that can't be changed: "if…had…, …would have…".
+243	Main
+244	mixed (past → now)
+245	mixed (now → past)
+246	Modal verbs of deduction
+247	Certainty
+248	Now
+249	About the past
+250	almost 100% yes
+251	possible
+252	almost 100% no
+253	The opposite of must be in this meaning is can't be, not mustn't be.
+254	Inversion for emphasis
+255	A negative word at the start — the auxiliary goes before the subject, as in a question.
+256	Beginning
+257	Word formation
+258	One root — different parts of speech. It's a whole task in the OGE and EGE exams.
+259	We get
+260	Suffixes
+261	Examples
+262	a person
+263	adjective
+264	adverb
+265	verb
+266	Negative prefixes

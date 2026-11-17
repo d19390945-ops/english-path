@@ -2,6 +2,63 @@
 'use strict';
 (() => {
 
+/* ================= язык интерфейса ================= */
+// Английский режим: код и данные остаются русскими, а видимый текст подменяется по словарю data/ui-en.js.
+// Точные строки — exact, строки с числами и подстановками — pat ({0}, {1}… переводятся рекурсивно).
+const EN = window.UI_LANG === 'en';
+const LOC = EN ? 'en-US' : 'ru-RU';
+const CYR = /[А-Яа-яЁё]/;
+const TR = (() => {
+  const D = window.UI_EN || { exact: {}, pat: [] };
+  const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pats = D.pat.map(([ru, en]) => {
+    const parts = ru.split(/\{\d\}/), ids = (ru.match(/\{\d\}/g) || []).map(x => +x[1]);
+    return { re: new RegExp('^' + parts.map(reEsc).join('([\\s\\S]*?)') + '$'), ids, en, w: parts.join('').length };
+  }).sort((a, b) => b.w - a.w);
+  return { exact: D.exact, pats };
+})();
+function trText(str, depth = 0) {
+  if (!EN || !str || depth > 4 || !CYR.test(str)) return str;
+  const core = str.trim();
+  let out = TR.exact[core];
+  // шаблон годится, только если всё, что попало в подстановки, тоже переводится (иначе «… класс» съел бы что угодно)
+  if (out === undefined) for (const p of TR.pats) {
+    const m = core.match(p.re); if (!m) continue;
+    const caps = {}; let bad = false;
+    p.ids.forEach((id, k) => { const v = trText(m[k + 1] || '', depth + 1); if (CYR.test(v)) bad = true; caps[id] = v; });
+    if (bad) continue;
+    out = p.en.replace(/\{(\d)\}/g, (_, d) => caps[d] || ''); break;
+  }
+  if (out === undefined) return str;
+  return str.match(/^\s*/)[0] + out + str.match(/\s*$/)[0];
+}
+// не переводим содержание заданий, слова, ники и заметки
+const NOTR = '.notr, #stage .opt, #stage .tile, .match, .q-word, .q-sent, .ru, .fb-a, .fb-r, .gap-s, .form-s, .wordlist, .mist, textarea, script, style, .who-btn b, .me-name h1, .adm-name b';
+function trNode(root) {
+  if (!EN || !root) return;
+  if (root.nodeType === 3) {
+    const p = root.parentElement;
+    if (p && !p.closest(NOTR)) { const v = trText(root.nodeValue); if (v !== root.nodeValue) root.nodeValue = v; }
+    return;
+  }
+  if (root.nodeType !== 1) return;
+  if (root.closest(NOTR)) { for (const el of root.querySelectorAll('[placeholder],[title],[aria-label]')) for (const a of ['placeholder', 'title', 'aria-label']) { const v = el.getAttribute(a); if (v && CYR.test(v)) el.setAttribute(a, trText(v)); } return; }
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+    { acceptNode: n => n.nodeType === 1 ? (n.matches(NOTR) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP) : NodeFilter.FILTER_ACCEPT });
+  let n; while ((n = w.nextNode())) { const v = trText(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; }
+  for (const el of [root, ...root.querySelectorAll('[placeholder],[title],[aria-label]')]) {
+    for (const a of ['placeholder', 'title', 'aria-label']) { const v = el.getAttribute(a); if (v && CYR.test(v)) el.setAttribute(a, trText(v)); }
+  }
+}
+if (EN) {
+  new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') trNode(m.target); else m.addedNodes.forEach(trNode); } })
+    .observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+function setLang(l, reload = true) {
+  try { localStorage.setItem('englishpath.lang', l); } catch { return; }
+  if (reload && l !== window.UI_LANG) location.reload();
+}
+
 /* ================= утилиты ================= */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -12,9 +69,9 @@ const rnd = a => a[Math.random() * a.length | 0];
 const uniq = a => [...new Set(a)];
 const today = () => { const d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); };
 const dayToDate = n => new Date(n * 86400000 + new Date().getTimezoneOffset() * 60000);
-const fmtDate = n => { const d = dayToDate(n); return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }).replace(/\s?г\.$/, ''); };
+const fmtDate = n => { const d = dayToDate(n); return d.toLocaleDateString(LOC, { day: 'numeric', month: 'long', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }).replace(/\s?г\.$/, ''); };
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c; };
+const plural = (n, a, b, c) => { if (EN) return n === 1 ? a : c; const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c; };
 const pad2 = n => String(n).padStart(2, '0');
 
 function norm(s) {
@@ -277,7 +334,7 @@ function newProfile(nick, pass, grade, goal) {
     nick, pass, grade, goal: { ...goal, start: today() }, created: Date.now(),
     xp: 0, streak: { n: 0, last: -1, best: 0 }, days: {}, lessons: {}, units: {}, grades: {}, words: {}, items: {}, ach: {}, topics: {}, notes: {}, notesAt: {}, xpDev: {},
     stats: { lessons: 0, perfect: 0, tests: 0, ace: 0, extern: 0, reviews: 0, goalDays: 0, practice: 0 },
-    settings: { sound: true, vibe: true, voice: '' }, usdEarn: {}, usdSpent: {},
+    settings: { sound: true, vibe: true, voice: '', lang: window.UI_LANG || 'ru' }, usdEarn: {}, usdSpent: {},
   };
 }
 function migrate(p) { // профили из первой версии
@@ -554,7 +611,7 @@ function gainHTML(l, compact = false) {
       <span>${icon('book')}<b>${l.words.length}</b> новых слов</span>
       <span>${icon('bolt')}<b>+${fmtPct(lvPct)}%</b> к уровню ${lv}</span>
     </div>
-    ${ln.topic ? `<p class="gain-learn"><b>Научишься:</b> ${esc(ln.topic)}${!compact && ln.what ? ` — ${esc(ln.what.charAt(0).toLowerCase() + ln.what.slice(1))}` : ''}</p>` : ''}
+    ${ln.topic ? `<p class="gain-learn"><b>Научишься:</b> <span>${esc(ln.topic)}</span>${!compact && ln.what ? `<span> — </span><span>${esc(EN ? trText(ln.what) : ln.what.charAt(0).toLowerCase() + ln.what.slice(1))}</span>` : ''}</p>` : ''}
     ${!compact && ln.words ? `<p class="gain-learn"><b>Новые слова:</b> ${esc(ln.words)} и другие.</p>` : ''}
     ${inGoal ? `<p class="gain-goal">Цель «${esc(goalName())}» станет ближе на ${fmtPct(goalPct)}%.</p>` : ''}
   </div>`;
@@ -632,7 +689,7 @@ function topicHTML(t, { practice = true } = {}) {
   return `<div class="g-topic">
     ${t.b.map(blockHTML).join('')}
     <div class="g-foot">
-      <a class="btn btn-ghost btn-sm" href="${videoURL(t.v || t.t)}" target="_blank" rel="noopener">${icon('video')}Видеоуроки на YouTube</a>
+      <a class="btn btn-ghost btn-sm" href="${videoURL(EN ? trText(t.t) + ' English grammar explained' : (t.v || t.t))}" target="_blank" rel="noopener">${icon('video')}Видеоуроки на YouTube</a>
       ${practice && n ? `<button class="btn btn-sm" data-practice="${t.id}">${icon('repeat')}Потренировать тему</button>` : ''}
     </div>
   </div>`;
@@ -745,6 +802,10 @@ window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); }
 const routeParts = () => (location.hash.replace(/^#\/?/, '') || 'path').split('/');
 
 function render() {
+  if (P) { // язык профиля важнее языка устройства
+    if (!P.settings.lang) { P.settings.lang = window.UI_LANG || 'ru'; save(); }
+    else if (P.settings.lang !== window.UI_LANG) { let ok = false; try { localStorage.setItem('englishpath.lang', P.settings.lang); ok = localStorage.getItem('englishpath.lang') === P.settings.lang; } catch { /* */ } if (ok) { location.reload(); return; } }
+  }
   document.body.dataset.sec = P ? ((routeParts()[0] in { path: 1, review: 1, grammar: 1, me: 1, admin: 1 }) ? routeParts()[0] : 'path') : 'auth';
   closePop();
   if (!P) return renderAuth();
@@ -851,6 +912,7 @@ function authFrame(inner) {
   const bg = PHOTOS.length ? PHOTOS[strHash('auth' + Math.floor(Date.now() / 3600000)) % PHOTOS.length] : null;
   return `${bg ? `<div class="auth-bg" aria-hidden="true"><img src="${photoSrc(bg)}" alt=""></div>` : ''}<div class="auth">
     <div class="auth-art">
+      <div class="lang-sw" role="group" aria-label="Язык интерфейса"><button type="button" data-lang="ru" class="${EN ? '' : 'on'}">RU</button><button type="button" data-lang="en" class="${EN ? 'on' : ''}">EN</button></div>
       <span class="ghost-num" aria-hidden="true">5–11</span>
       <h1 class="script">Your Road<br>to the USA</h1>
       <p>Английский с нуля до B2 — по школьной программе или в своём темпе. Грамматика в схемах, практика по-настоящему.</p>
@@ -1332,7 +1394,7 @@ function adminDetail(box, row) {
     return `
       <a class="back" href="#/admin">${icon('back')}Все ученики</a>
       <div class="me-head"><span class="ava big">${esc(P.nick[0].toUpperCase())}</span><div class="me-name"><h2 class="page-h">${esc(P.nick)}</h2>
-        <p class="muted">${isGen() ? 'Своя программа' : P.grade + ' класс'}${P.purpose ? ', ' + esc(PURPOSES[P.purpose] || '') : ''} · цель: ${esc(goalName())}, ${P.goal.minutes} мин/день · с ${new Date(P.created).toLocaleDateString('ru-RU')}</p></div></div>
+        <p class="muted">${isGen() ? 'Своя программа' : P.grade + ' класс'}${P.purpose ? ', ' + esc(PURPOSES[P.purpose] || '') : ''} · цель: ${esc(goalName())}, ${P.goal.minutes} мин/день · с ${new Date(P.created).toLocaleDateString(LOC)}</p></div></div>
       <div class="stat-row">
         <div class="stat c-red"><i class="stat-ic">${miniFlag()}</i><b>${Object.keys(P.lessons).length}</b><span>уроков</span></div>
         <div class="stat c-blue"><i class="stat-ic">${icon('clock')}</i><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
@@ -1407,6 +1469,8 @@ function viewMe() {
       <label class="field"><span>Голос</span>
         <span class="row"><select id="voice">${TTS.list.length ? TTS.list.map(v => `<option value="${esc(v.name)}" ${TTS.voice && TTS.voice.name === v.name ? 'selected' : ''}>${esc(v.name)} (${v.lang})</option>`).join('') : '<option>Английских голосов нет</option>'}</select>
         <button class="btn btn-ghost btn-sm" data-say="Hello! My name is Anna. I'm from London.">${icon('play')}Проверить</button></span></label>
+      <label class="field"><span>Язык интерфейса</span>
+        <select id="ulang"><option value="ru" ${EN ? '' : 'selected'}>Русский</option><option value="en" ${EN ? 'selected' : ''}>English</option></select></label>
       <label class="switch"><input type="checkbox" id="snd" ${P.settings.sound ? 'checked' : ''}><span>Звуки ответов</span></label>
       <label class="switch"><input type="checkbox" id="vib" ${P.settings.vibe !== false ? 'checked' : ''}><span>Вибрация (на телефоне)</span></label>
       <div class="row">
@@ -1419,7 +1483,7 @@ function viewMe() {
 }
 /* ---- имя ---- */
 function meHeadHTML(edit = false) {
-  const sub = `${isGen() ? 'Своя программа' + (P.purpose ? ', ' + PURPOSES[P.purpose].toLowerCase() : '') : P.grade + ' класс'}, с ${new Date(P.created).toLocaleDateString('ru-RU')}`;
+  const sub = `${isGen() ? 'Своя программа' + (P.purpose ? ', ' + PURPOSES[P.purpose].toLowerCase() : '') : P.grade + ' класс'}, с ${new Date(P.created).toLocaleDateString(LOC)}`;
   if (!edit) return `<span class="ava big">${esc(P.nick[0].toUpperCase())}</span>
     <div class="me-name"><h1 class="page-h">${esc(P.nick)}</h1><p class="muted">${sub}</p></div>
     <div class="me-btns"><button class="btn btn-ghost btn-sm" data-me="rename">${icon('pencil')}Изменить имя</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon('door')}Выйти</button></div>`;
@@ -1535,7 +1599,7 @@ function calHTML() {
 }
 function calDayHTML() {
   const d = cal.sel, dt = dayToDate(d), t = today(), lv = dayLevel(d), mm = dayMin(d), log = dayLog(d), xp = (P.days[d] && P.days[d].xp) || 0;
-  const wd = dt.toLocaleDateString('ru-RU', { weekday: 'long' });
+  const wd = dt.toLocaleDateString(LOC, { weekday: 'long' });
   const status = d > t ? 'Этот день ещё впереди' : lv === 0 ? 'Занятий не было' : `${LEVEL_TXT[lv]}: ${mm} из ${P.goal.minutes} мин`;
   return `
     <p class="cd-date">${fmtDate(d)}, ${wd}${d === t ? ' — сегодня' : ''}</p>
@@ -1603,6 +1667,11 @@ function bindMe() {
   const v = $('#voice');
   v && v.addEventListener('change', () => { P.settings.voice = v.value; chooseVoice(); save(); });
   $('#snd').addEventListener('change', e => { P.settings.sound = e.target.checked; save(); if (e.target.checked) sfx.ok(); });
+  $('#ulang').addEventListener('change', async e => {
+    P.settings.lang = e.target.value; save();
+    if (P.cloud && sb) { try { await pushNow(); } catch { /* */ } }
+    setLang(e.target.value);
+  });
   $('#vib').addEventListener('change', e => { P.settings.vibe = e.target.checked; save(); vibe(40); });
   $('#imp').addEventListener('change', e => {
     const f = e.target.files[0]; if (!f) return;
@@ -1624,6 +1693,7 @@ function bindMe() {
 
 /* ================= клики ================= */
 document.addEventListener('click', e => {
+  const lg = e.target.closest('[data-lang]'); if (lg && !P) return setLang(lg.dataset.lang);
   const sayB = e.target.closest('[data-say]');
   if (sayB) { say(sayB.dataset.say, sayB.dataset.slow === '1'); if (!sayB.closest('.player')) return; }
   if (!P || S) return;
@@ -1760,7 +1830,7 @@ function showIntro(kind) {
     html = `<p class="ex-kicker">${gTitle(l.unit.grade)}. ${esc(l.unit.title)}, урок ${l.index + 1}</p><h2 class="ex-title">${esc(l.t)}</h2>
       ${gainHTML(l)}
       ${t ? `<section class="g-card"><p class="g-card-k">${icon('scheme')}Грамматика: ${esc(t.t)}</p>${topicHTML(t, { practice: false })}</section>` : ''}
-      ${l.th ? `<section class="theory card"><p class="g-card-k">В этом уроке</p>${theoryHTML(l.th)}</section>` : ''}`;
+      ${l.th && !(EN && t) ? `<section class="theory card"><p class="g-card-k">В этом уроке</p>${theoryHTML(l.th)}</section>` : ''}`;
   }
   if (kind === 'words') html = `<h2 class="ex-title">Слова урока</h2><p class="muted">Нажми на слово, чтобы послушать.</p><ul class="wordlist big">${S.l.words.map(w => `<li data-say="${esc(w.en)}"><span class="say">${icon('sound')}</span><b>${esc(w.en)}</b><span>${esc(w.ru)}</span></li>`).join('')}</ul>`;
   if (kind === 'testinfo') {
@@ -1802,11 +1872,11 @@ function showExercise(ex) {
   let html = '';
   if (ex.type === 'pick') html = `<h2 class="ex-title">${TITLES.pick(ex.dir)}</h2><div class="prompt">${ex.dir === 'en' ? sp(ex.en) : ''}<span class="q-word">${esc(ex.q)}</span></div>${opts(ex.opts)}`;
   if (ex.type === 'listen') html = `<h2 class="ex-title">${TITLES.listen()}</h2><div class="prompt center">${sp(ex.answer, true)}${slow(ex.answer)}</div>${opts(ex.opts)}`;
-  if (ex.type === 'gap') html = `<h2 class="ex-title">${TITLES.gap()}</h2><p class="gap-s">${esc(ex.g.before)}<span class="slot">&nbsp;</span>${esc(ex.g.after)}</p>${ex.ru ? `<p class="muted">${esc(ex.ru)}</p>` : ''}${opts(ex.opts, 'opts-row')}`;
+  if (ex.type === 'gap') html = `<h2 class="ex-title">${TITLES.gap()}</h2><p class="gap-s">${esc(ex.g.before)}<span class="slot">&nbsp;</span>${esc(ex.g.after)}</p>${ex.ru ? `<p class="muted notr">${esc(ex.ru)}</p>` : ''}${opts(ex.opts, 'opts-row')}`;
   if (ex.type === 'form') {
     html = `<h2 class="ex-title">${TITLES.form()}</h2>
       <p class="form-s">${esc(ex.f.before)}<span class="form-hint">(${esc(ex.f.hint)})</span><input class="form-in" id="tin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Ответ" size="${Math.max(6, ex.answer.length + 2)}">${esc(ex.f.after)}</p>
-      ${ex.ru ? `<p class="muted">${esc(ex.ru)}</p>` : ''}
+      ${ex.ru ? `<p class="muted notr">${esc(ex.ru)}</p>` : ''}
       <p class="small muted">Поставь слово в скобках в нужную форму. Отрицание и вопрос — целиком, как в переводе.</p>`;
   }
   if (ex.type === 'build') html = `<h2 class="ex-title">${ex.listen ? 'Собери, что слышишь' : 'Переведи'}</h2><div class="prompt">${ex.listen ? sp(ex.answer, true) + slow(ex.answer) : `<span class="q-sent">${esc(ex.ru)}</span>`}</div><div class="ans" aria-label="Твой ответ"></div><div class="bank">${ex.tiles.map((t, i) => `<button class="tile" data-ti="${i}">${esc(t)}</button>`).join('')}</div>`;

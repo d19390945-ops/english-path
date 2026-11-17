@@ -1,0 +1,79 @@
+0	+{0} {1} in "Dreams" · {2} of {3}
+1	+{0} dream cards
+2	+{0} XP
+3	, best score {0}%
+4	, {0} opens next
+5	. Appears in grades: {0}
+6	40 tasks across the whole {0}. You need 80%.
+7	{0} {1} of practice, {2} min, goal met {3} {4}
+8	{0} {1} and review, about {2} minutes.
+9	{0} {1} ago
+10	{0} · {1} of {2}
+11	{0} · now: {1}
+12	{0} tasks. To pass, you need
+13	{0} tasks{1}
+14	{0} and others.
+15	{0} of {1}
+16	{0} of {1} minutes
+17	Grade {0}
+18	grade {0}
+19	{0} min
+20	{0} is still locked.
+21	{0} — passed
+22	{0}% done, {1} modules, {2} lessons
+23	{0}, "{1}": best {2}% {3}
+24	{0}, since {1}
+25	{0}. {1}, lesson {2}
+26	{0}. Words and rules have been added to review.
+27	{0}: {1} of {2} min
+28	{0}: {1}% correct.
+29	{0}{1} · goal: {2}, {3} min/day · since {4}
+47	Restore it for ${0}. You have ${1}.
+48	Bar height — minutes per day; bright bars — goal reached ({0} min).
+49	About {1} of study left to reach {0}. At {2} min a day that's {3} {4}, until {5}.
+50	Note{0}
+51	Name changed: {0}
+52	Final test {0} — {1}%{2}
+53	Final test: {0}
+54	You won't make the deadline: you need about {0} min a day.
+55	Card locked. Complete a lesson to unlock the next one ({0} left).
+56	Final test {0}
+57	Module {0}
+58	My board{0}
+59	Back: {0}
+60	Couldn't load: {0}
+61	You need ${0}, you have ${1}. Dollars are earned for lessons and achievements.
+62	Next one unlocked: {0}.
+63	Unlocked {0} of {1}. Each lesson unlocks a new card, a module test — two, a final test — three.
+64	A hint costs ${0}, you have ${1}. Dollars are earned for lessons.
+65	No hints or retries. Half the tasks need typing: open the brackets, translate, write what you hear{0}.
+66	Progress "{0}" loaded
+67	Skip ahead with final tests: 40 tasks, 80% — and {1}.
+68	Score {0}%, you need 80%. Review your mistakes and try again — or do the lessons.
+69	Score {0}%.
+70	Pass the final test of {0} — or complete its modules.
+71	Passed with {0}%
+72	Passed{0}. You can retake it.
+73	Passed with {0}%. {1}
+74	Pass it — and {0} counts{2}.
+75	Streak of {0} {1} restored
+76	Your streak of {0} {1} was broken
+77	The next word starts with "{0}".
+78	Stage {0}
+79	Topic "{0}" — {1}%
+80	Module test "{0}" — {1}%{2}
+81	Test: {0}
+82	You're in grade {0}.
+83	Every {0} has a final test — pass it with 80% and it counts.
+84	Already know this programme? Score 80% — {0}, and the next one opens.
+85	Lesson {0} of {1}.
+86	Lesson "{0}"
+87	Lesson "{0}" — {1}%
+88	Goal "{0}" gets {1}% closer.
+90	toward {0}
+91	with {0}%
+92	grade {0} curriculum
+93	passed, {0}%
+94	stage {0}
+95	level {0}
+96	— no more than {0} {1}.

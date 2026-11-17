@@ -1,0 +1,410 @@
+0	(there's no English voice on this device — audio has been replaced)
+1	(plan)
+2	, in the cloud
+3	, has a note
+4	, passed
+5	, passed
+6	1 month
+7	10 correct answers in a row
+8	2 months
+9	20 tasks on the module. You need 80%.
+10	3 months
+11	30 days in a row
+12	300 words
+13	5 lessons without a single mistake
+14	7 days in a row
+15	August
+16	Account found, but there's no progress in the cloud. Create the profile again.
+17	English from zero to B2 — following the school curriculum or at your own pace. Grammar in diagrams, real practice.
+18	No English voices
+19	April
+20	Pre-intermediate
+21	Without the cloud, progress is stored only in this browser. The file is a backup copy.
+22	Above the goal
+23	Bronze · 70%+
+24	Which grade are you in?
+25	No practice this month yet
+26	In this lesson
+27	Enter your username and password.
+28	Restore a broken streak
+29	Correct
+30	The whole course is complete
+31	Vibration (on phones)
+32	Log in
+33	Sun
+34	All
+35	All pairs, no mistakes
+36	All pairs found
+37	Every topic from grade 5 to 11: diagrams, timelines, arrows, examples with audio and practice for each topic.
+38	Everything is in sync
+39	Tue
+40	Second chance
+41	Logging in…
+42	Choose the right option
+43	Exit
+44	Leave the test? The result won't count.
+45	Leave? Your progress in this lesson won't be saved.
+46	Reach your daily minutes goal
+47	Upper-intermediate
+48	Where do you study?
+49	Voice
+50	Grammar
+51	Next
+52	December
+53	Ten in a row
+54	For myself
+55	Day streak
+56	Welcome
+57	Dollars
+58	Achievements
+59	Other
+60	Loading…
+61	Load from a file
+62	Locked card
+63	Close
+64	Study 3 days without a break
+65	No practice
+66	Earn $100
+67	Why do you need English?
+68	Answer sounds
+69	Gold · 90%+
+70	Perfect · 100%
+71	Name — at least 2 characters.
+72	Final test
+73	July
+74	June
+75	To the tasks
+76	To the final test
+77	To the module test
+78	Admin panel
+79	Every day:
+80	What's your name?
+81	What is it in Russian?
+82	What is it in English?
+83	Which level do you need?
+84	Practice calendar
+85	Grades
+86	Collector
+87	Collection
+88	The final test isn't passed yet
+89	Who's studying?
+90	Course complete.
+91	Timeline
+92	May
+93	A little
+94	March
+95	Slowly
+96	A month
+97	Dreamer
+98	Dreams
+99	Minutes a day
+100	Module complete
+101	Module passed by test
+102	My dream board
+103	On another device, open the site → "I already study — log in" → username
+104	To the map
+105	On my board
+106	Add to my board
+107	Tap a word to hear it.
+108	Back
+109	Match the pairs
+110	Find a topic: Present Perfect, passive, articles…
+111	Write it in English
+112	Write what you hear
+113	Settings
+114	You'll learn:
+115	Start of the answer:
+116	Elementary
+117	Start
+118	Start the final test
+119	Start the test
+120	Start from zero, or log in if you already study on another device.
+121	Not a beginner?
+122	Wrong file: you need the file from the "Save progress" button
+123	Wrong username or password.
+124	A week
+125	No connection to the cloud
+126	No connection to the cloud — you can change the name once you're back online.
+127	No connection to the cloud — saved on this device
+128	No connection to the cloud.
+129	No connection to the cloud. Check your internet.
+130	No connection to the server — progress is saved only on this device.
+131	Username
+132	Username — at least 2 characters.
+133	New dream card
+134	New achievement
+135	New name
+136	New words:
+137	New student
+138	On target
+139	Daily goal reached
+140	Daily goal
+141	November
+142	Log in again to keep saving to the cloud.
+143	Cloud
+144	Cloud not connected
+145	Cloud unavailable
+146	Cloud unavailable (no internet).
+147	Cloud unavailable — opening the data from this device.
+148	The cloud returned an error:
+149	Cloud connected
+150	Cloud connected. The first save failed — I'll retry automatically.
+151	The cloud requires email confirmation — tell your tutor.
+152	October
+153	XP
+154	Stay
+155	Answer
+156	Unlock 100 dream cards
+157	Unlock 25 dream cards
+158	Open a photo in
+159	Unlocked
+160	Open the photo
+161	Top student
+162	Excellent
+163	Cancel
+164	Mark the most inspiring cards with a heart — they'll gather here.
+165	Memory
+166	Password
+167	Password (at least 6 characters)
+168	Password (optional)
+169	Wrong password.
+170	Password — at least 6 characters.
+171	Password — at least 6 characters: you'll use it to log in from other devices.
+172	Word pairs
+173	First hundred
+174	First stage
+175	First step
+176	Translate
+177	Retake
+178	Type here
+179	Mon
+180	Review
+181	Review done
+182	Review
+183	Review now
+184	Connecting…
+185	One pair is highlighted.
+186	You'll go by stages, not school grades: A1 → A2 → B1 → B2. Already know something? Pass the stage test and move on.
+187	You'll go grade by grade. Know a grade's curriculum? Pass its final test and move on to the next one.
+188	Not passed yet
+189	No entries yet.
+190	Nobody is studying in the cloud yet.
+191	For now your progress is saved on this device; you can connect the cloud in your profile.
+192	Empty for now.
+193	Got it, next
+194	Last 14 days
+195	Listen
+196	Put the word in brackets into the correct form. Negatives and questions — in full, as in the translation.
+197	Calculate the plan
+198	Practise weak words
+199	Practise 5 topics in the grammar guide
+200	Almost perfect
+201	Almost. Check the spelling
+202	Correct answer:
+203	Previous
+204	Previous month
+205	Choose a username and a password. You'll use them to log in from a phone, tablet or another computer — your progress will follow you.
+206	Choose a username. A password is optional.
+207	Create a login password (at least 6 characters)
+208	Check
+209	Check the word order.
+210	Checking the username…
+211	My school grade's curriculum
+212	Progress of everyone studying in the cloud. Students' notes aren't shown — they're private.
+213	Progress loaded from the cloud
+214	Progress is saved in the cloud
+215	Continue
+216	Done — you can repeat it.
+217	Complete your first lesson
+218	Complete your first lesson — the words will appear here.
+219	Complete a lesson with 70% or more
+220	Complete a lesson with 80% or more
+221	Complete a lesson with 90% or more
+222	Profile
+223	Fri
+224	Travel
+225	Path
+226	Five clean ones
+227	Work and career
+228	Working
+229	Your mistakes
+230	Open the brackets
+231	Sat
+232	Own programme
+233	Pass the grade 11 final test (B2)
+234	Pass the grade 5 final test (A1)
+235	Pass the grade 7 final test (A2)
+236	Pass the grade 9 final test (B1)
+237	Pass a module test without doing the lessons
+238	Score 80% — and the module counts without the lessons. 20 tasks.
+239	Pass a module test
+240	Test out
+241	Pass it — and the module is complete, even if the lessons aren't done.
+242	Do 5 reviews
+243	Today
+244	Right now your progress lives only in this browser. Connect the cloud — and study from your phone, tablet and other computers.
+245	September
+246	Silver · 80%+
+247	Hide and never show again
+248	Weak spots
+249	Next
+250	Next month
+251	Next lesson
+252	Words come back after 1, 2, 4, 7, 15 and 30 days. Grammar you got wrong comes back tomorrow and again in 3 days.
+253	Lesson words
+254	Signal words
+255	Complete the previous lesson first.
+256	Complete at least one lesson first.
+257	Collect 300 words in your word bank
+258	Build what you hear
+259	Creating…
+260	Saved
+261	Saved in the cloud
+262	Save
+263	Save progress to a file
+264	Saves automatically as you type
+265	Saving to the cloud…
+266	Saving…
+267	Reference
+268	Wed
+269	Intermediate
+270	Deadline
+271	Stages
+272	That's right
+273	This name already exists on this device.
+274	This name is already taken in the cloud.
+275	This username already exists on this device.
+276	This username is already taken in the cloud.
+277	This username is already taken in the cloud. Choose another one.
+278	This username is already taken. If it's you, go back and press "Log in".
+279	Your answer
+280	Your plan
+281	The current password is wrong.
+282	Current profile password
+283	Current password — to confirm
+284	Topic mastered
+285	This topic needs more practice
+286	Theorist
+287	Test
+288	A test without mistakes
+289	Module test
+290	Module tests
+291	What you got wrong will come back tomorrow.
+292	Exactly
+293	Three days in a row
+294	Some wrong options have been removed.
+295	Confident
+296	Already know the basics?
+297	Level
+298	Level A1 — the basics
+299	Level A2
+300	Level A2 (grade 7)
+301	Level A2 — confident basics
+302	Level B1
+303	Level B1 (grade 9)
+304	Level B1 — free conversation
+305	Level B2
+306	Level B2 (grade 11)
+307	Level B2 — work and study
+308	A lesson without a single mistake
+309	Lesson without mistakes
+310	Lesson complete
+311	Student
+312	Student not found.
+313	Students
+314	I'm at college or university
+315	I'm at school
+316	Study or life abroad
+317	The file is a backup, just in case.
+318	February
+319	Photo
+320	Photo of the day
+321	Good student
+322	Goal
+323	Goal reached. You can set the next one in your profile.
+324	Clean
+325	Thu
+326	What this lesson gives you
+327	What I did
+328	What went well, what was hard, what to review…
+329	What do you hear?
+330	What do you want to do on this day…
+331	School and exams
+332	Test-out
+333	This is the site's programme: grammar, words, translation, listening. For real B2, add reading books and speaking practice.
+334	This day is still ahead
+335	January
+337	active this week
+339	above the goal
+340	future
+341	in the cloud
+342	aux.
+343	auxiliary verb
+344	yesterday
+345	learned for good
+346	year
+347	day
+348	days
+349	day
+350	dollars
+351	dollars
+352	locked
+353	note
+354	and press "Add to my board" — it will appear here.
+355	and your password. Lessons, calendar and notes will load by themselves.
+357	or
+358	cards
+359	card
+360	cards
+361	grade
+362	grade passed
+363	grade
+364	grades
+365	course complete
+366	best streak
+367	a little
+368	min
+369	min / 7 days
+370	minutes in total
+371	e.g. sasha_8a
+372	no practice
+373	new words
+374	on target
+375	XP
+376	offline
+377	mistake
+378	mistakes
+379	6 months
+380	rules due
+381	grade curriculum
+382	grade curriculum
+383	past
+384	times
+385	times
+386	own programme
+387	passed
+388	today
+389	now
+390	streak
+391	words
+392	words in the bank
+393	words due
+394	main verb
+395	saving
+396	stage
+397	stage passed
+398	accuracy
+399	level
+400	lesson
+401	lessons
+402	lessons
+403	lessons in total
+404	students
+405	photos
+406	hour
+407	hours
+408	hours
+409	hours this week
+410	— not passed
+411	— passed
+412	— today

@@ -1,0 +1,90 @@
+E	Видеоуроки на YouTube	Video lessons on YouTube
+E	Все темы	All topics
+E	Все ученики	All students
+E	Вся коллекция	Whole collection
+E	Знаю эту тему — сдать модуль тестом	I know this — test out of the module
+E	Изменить имя	Change name
+E	Обновить	Refresh
+E	Подключить облако	Connect the cloud
+E	Подсказка	Hint
+E	Потренировать тему	Practise the topic
+E	Уже занимаюсь — войти по нику	I already study — log in
+E	Дней подряд	Day streak
+E	Начало ответа:	Start of the answer:
+E	Грамматика:	Grammar:
+E	Язык интерфейса	Interface language
+E	Русский	Русский
+P	{0} подряд	{0} in a row
+P	Повторить {0}	Review {0}
+P	Вернуть за ${0}	Restore for ${0}
+P	Грамматика: {0}	Grammar: {0}
+P	Начало ответа: {0}	Start of the answer: {0}
+P	уровня {0}	level {0}
+P	{0} заданий	{0} tasks
+P	{0} класс	Grade {0}
+P	Январь {0}	January {0}
+P	{0} январь: {1}	January {0}: {1}
+P	Февраль {0}	February {0}
+P	{0} февраль: {1}	February {0}: {1}
+P	Март {0}	March {0}
+P	{0} март: {1}	March {0}: {1}
+P	Апрель {0}	April {0}
+P	{0} апрель: {1}	April {0}: {1}
+P	Май {0}	May {0}
+P	{0} май: {1}	May {0}: {1}
+P	Июнь {0}	June {0}
+P	{0} июнь: {1}	June {0}: {1}
+P	Июль {0}	July {0}
+P	{0} июль: {1}	July {0}: {1}
+P	Август {0}	August {0}
+P	{0} август: {1}	August {0}: {1}
+P	Сентябрь {0}	September {0}
+P	{0} сентябрь: {1}	September {0}: {1}
+P	Октябрь {0}	October {0}
+P	{0} октябрь: {1}	October {0}: {1}
+P	Ноябрь {0}	November {0}
+P	{0} ноябрь: {1}	November {0}: {1}
+P	Декабрь {0}	December {0}
+P	{0} декабрь: {1}	December {0}: {1}
+P	Урок {0}: {1}	Lesson {0}: {1}
+P	{0} — сегодня	{0} — today
+P	{0} час	{0} hour
+P	{0} часа	{0} hours
+P	{0} часов	{0} hours
+P	{0}, {1}	{0}, {1}
+P	{0}, {1}. Встречается: {2} класс	{0}, {1}. Appears in grades: {2}
+P	{0}: {1} мин	{0}: {1} min
+E	родные, 's, внешность, can	relatives, 's, appearance, can
+E	Чьё? 's	Whose? 's
+E	Нельсон Мандела	Nelson Mandela
+E	Маленький шаг каждый день — и через год ты другой человек.	A small step every day — and in a year you are a different person.
+E	Мечта без плана — просто желание. План без дисциплины — просто бумага.	A dream without a plan is just a wish. A plan without discipline is just paper.
+E	Сегодняшний урок — это билет туда, куда ты смотришь.	Today's lesson is a ticket to where you are looking.
+E	Не жди мотивации. Начни — и она догонит.	Don't wait for motivation. Start — and it will catch up.
+E	Ты учишь язык не ради оценки. Ты открываешь себе мир.	You don't learn a language for a grade. You open up the world.
+E	Через пять лет ты скажешь спасибо себе сегодняшнему.	In five years you'll thank yourself for today.
+E	Гарвард тоже начинается с алфавита.	Harvard starts with the alphabet too.
+E	Сложно — значит, растёшь.	If it's hard, you're growing.
+E	Каждое новое слово — ещё одна открытая дверь.	Every new word is another open door.
+E	Дисциплина — это помнить, чего ты на самом деле хочешь.	Discipline is remembering what you really want.
+E	Один урок — немного. Сто уроков — новая жизнь.	One lesson is not much. A hundred lessons is a new life.
+E	Кто учится каждый день, всегда впереди того, кто учится иногда.	Those who study every day are always ahead of those who study sometimes.
+E	Мир говорит по-английски. Скоро заговоришь и ты.	The world speaks English. Soon you will too.
+E	Сравнивай себя не с другими, а с собой вчерашним.	Compare yourself not with others, but with who you were yesterday.
+E	Ошибка — это урок, который ты уже начал проходить.	A mistake is a lesson you have already started.
+E	Устал — отдохни. Но не сдавайся.	Tired? Rest. But don't give up.
+E	Твоё будущее строится из сегодняшних минут.	Your future is built from today's minutes.
+E	Сначала ты работаешь на привычку. Потом привычка работает на тебя.	First you work for the habit. Then the habit works for you.
+E	Большие цели любят маленькие шаги.	Big goals love small steps.
+E	Знания — единственный багаж, который не надо сдавать в аэропорту.	Knowledge is the only luggage you never have to check in at the airport.
+E	Вид с вершины стоит каждого шага подъёма.	The view from the top is worth every step of the climb.
+E	Нью-Йорк подождёт. А слова — нет.	New York will wait. Words won't.
+E	Терпение и труд превращают мечту в план.	Patience and hard work turn a dream into a plan.
+E	Ты ближе к цели, чем думаешь.	You are closer to your goal than you think.
+E	Каждый эксперт когда-то был новичком.	Every expert was once a beginner.
+E	Мечтай смело. Работай тихо.	Dream big. Work quietly.
+E	Пусть сегодняшний день будет на шаг лучше вчерашнего.	Let today be one step better than yesterday.
+E	Образование — самое мощное оружие, которым можно изменить мир.	Education is the most powerful weapon which you can use to change the world.
+E	ий	
+E	ая	
+E	а	

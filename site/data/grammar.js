@@ -59,7 +59,7 @@ window.GRAMMAR = [
   g: ['three {boxes|boxs}', 'two {children|childs}', 'five {knives|knifes}', 'many {babies|babys}', 'a lot of {sheep|sheeps}'],
   f: ['two (tooth:teeth) | два зуба', 'three (story:stories) | три истории', 'four (woman:women) | четыре женщины', 'two (dish:dishes) | две тарелки', 'six (leaf:leaves) | шесть листьев'] },
 
-{ id: 'demonstratives', t: 'this / that / these / those', lvl: 'A1', v: 'this that these those',
+{ id: 'demonstratives', t: 'this / that / these / those', lvl: 'A1', v: 'this that these those объяснение на русском',
   b: [
     { k: 'table', head: ['', 'Один', 'Много'], rows: [['Рядом', 'this', 'these'], ['Далеко', 'that', 'those']] },
     { k: 'ex', items: ['This is my book. = Это моя книга.', 'These are my books. = Это мои книги.', 'Look at those birds! = Посмотри на тех птиц!'] },
@@ -119,7 +119,7 @@ window.GRAMMAR = [
   g: ['My mum {works|work} in a bank.', '{Does|Do} he like pizza?', "They {don't|doesn't} live here.", 'She {watches|watchs} TV every evening.', 'Does your brother {play|plays} the guitar?', 'Water {boils|is boiling} at 100 degrees.'],
   f: ['He (get up:gets up) at seven. | Он встаёт в семь.', 'We (not/go:don\'t go|do not go) to school on Sundays. | Мы не ходим в школу по воскресеньям.', '(do:Does) your sister speak English? | Твоя сестра говорит по-английски?', 'The shop (open:opens) at 9 a.m. | Магазин открывается в 9 утра.', 'My cat (not/like:doesn\'t like|does not like) water. | Мой кот не любит воду.', 'She (study:studies) Maths every day. | Она занимается математикой каждый день.', 'What time (do:do) you usually have lunch? | Во сколько ты обычно обедаешь?'] },
 
-{ id: 'frequency', t: 'Наречия частоты', lvl: 'A1', v: 'adverbs of frequency always usually often',
+{ id: 'frequency', t: 'Наречия частоты', lvl: 'A1', v: 'adverbs of frequency always usually often объяснение на русском',
   b: [
     { k: 'table', head: ['Как часто', 'Слово'], rows: [['100%', 'always'], ['~80%', 'usually'], ['~60%', 'often'], ['~40%', 'sometimes'], ['~10%', 'rarely / seldom'], ['0%', 'never']] },
     { k: 'compare', a: ['Перед глаголом', 'I always get up early.', 'She never eats meat.'], b: ['После am / is / are', 'He is always late.', 'They are often tired.'] },
@@ -148,7 +148,7 @@ window.GRAMMAR = [
   g: ['She usually {walks|is walking} to school.', 'Look! The bus {is coming|comes}.', 'I {know|am knowing} the answer.', 'Every summer we {go|are going} to the sea.', 'Shh! I {am talking|talk} on the phone.'],
   f: ['He usually (drink:drinks) tea, but today he (drink:is drinking) coffee. | Обычно он пьёт чай, но сегодня — кофе.', 'Water (boil:boils) at 100 degrees. | Вода кипит при 100 градусах.', 'Where is Kate? — She (have:is having) a shower. | Где Кейт? — Она в душе.', 'I (not/understand:don\'t understand|do not understand) this word. | Я не понимаю это слово.'] },
 
-{ id: 'countable', t: 'some / any, much / many', lvl: 'A1', v: 'some any much many countable uncountable',
+{ id: 'countable', t: 'some / any, much / many', lvl: 'A1', v: 'some any much many countable uncountable объяснение на русском',
   b: [
     { k: 'compare', a: ['Исчисляемые', 'apple → apples', 'many apples', 'How many?', 'a few apples'], b: ['Неисчисляемые', 'milk, water, bread, money, advice', 'much milk', 'How much?', 'a little milk'] },
     { k: 'table', head: ['', 'Утверждение', 'Вопрос / отрицание'], rows: [['some / any', 'There is some milk.', 'Is there any milk? There isn\'t any.'], ['a lot of', 'a lot of apples / milk', 'не только в утверждении'], ['просьба', 'Can I have some tea?', '(тут some, хоть и вопрос)']] },
@@ -306,7 +306,7 @@ window.GRAMMAR = [
   g: ["You look tired. You {should|might} go to bed.", "Take an umbrella. It {might|should} rain.", '{Could|Should} you open the window, please?', "You {shouldn't|mightn't} eat so many sweets."],
   f: [] },
 
-{ id: 'relative', t: 'Относительные: who, which, that, where', lvl: 'A2', v: 'relative clauses who which that whose',
+{ id: 'relative', t: 'Относительные: who, which, that, where', lvl: 'A2', v: 'relative clauses who which that whose объяснение на русском',
   b: [
     { k: 'table', head: ['Слово', 'О ком / о чём', 'Пример'], rows: [['who', 'люди', 'The girl who lives next door…'], ['which', 'предметы, животные', 'The book which I bought…'], ['that', 'люди и предметы (не после запятой)', 'The film that we saw…'], ['whose', 'чей', 'The boy whose dog is lost…'], ['where', 'место', 'The town where I was born…']] },
     { k: 'tip', t: 'Если who / which / that — дополнение, его можно убрать: The book (that) I read was great.' },
@@ -330,7 +330,7 @@ window.GRAMMAR = [
   g: ["I'm not {tall enough|enough tall} to reach it.", 'This coffee is {too|enough} hot to drink.', "We don't have {enough money|money enough}."],
   f: [] },
 
-{ id: 'ed-ing', t: 'Прилагательные на -ed и -ing', lvl: 'A2', v: 'adjectives ed ing bored boring',
+{ id: 'ed-ing', t: 'Прилагательные на -ed и -ing', lvl: 'A2', v: 'adjectives ed ing bored boring объяснение на русском',
   b: [
     { k: 'compare', a: ['-ed — что я чувствую', "I'm bored.", "She's interested in art.", 'We were tired.'], b: ['-ing — что вызывает чувство', 'The lesson is boring.', 'Art is interesting.', 'It was a tiring day.'] },
   ],
@@ -428,7 +428,7 @@ window.GRAMMAR = [
   g: ['They {had been playing|have been playing} for two hours when it started to rain.', 'She was tired because she {had been working|has been working} all day.'],
   f: ['We (walk:had been walking) for hours before we found a café. | Мы шли несколько часов, прежде чем нашли кафе.', 'His eyes were red: he (cry:had been crying). | Глаза у него были красные: он плакал.'] },
 
-{ id: 'future-adv', t: 'Future Continuous и Future Perfect', lvl: 'B2', v: 'Future Continuous Future Perfect',
+{ id: 'future-adv', t: 'Future Continuous и Future Perfect', lvl: 'B2', v: 'Future Continuous Future Perfect объяснение на русском',
   b: [
     { k: 'timeline', m: [{ r: [0.3, 0.7] }, { p: 0.5 }, { l: 'this time tomorrow', at: 0.5 }], cap: 'Future Continuous: в момент будущего действие будет в процессе.' },
     { k: 'timeline', m: [{ p: 0.4 }, { p: 0.75 }, { arc: [0.4, 0.75] }, { l: 'by Friday', at: 0.75 }], cap: 'Future Perfect: к моменту будущего действие уже завершится.' },
@@ -438,7 +438,7 @@ window.GRAMMAR = [
   g: ['At 9 tomorrow I {will be sitting|will sit} an exam.', 'By June they {will have built|will build} the bridge.', "Don't call at 8 — we {'ll be having|'ll have} dinner."],
   f: ['By the end of the year I (read:will have read) 30 books. | К концу года я прочитаю 30 книг.', 'This time next week we (lie:will be lying) on the beach. | Через неделю в это время мы будем лежать на пляже.'] },
 
-{ id: 'passive-adv', t: 'Пассив сложнее и have something done', lvl: 'B2', v: 'causative have something done passive advanced',
+{ id: 'passive-adv', t: 'Пассив сложнее и have something done', lvl: 'B2', v: 'causative have something done passive advanced объяснение на русском',
   b: [
     { k: 'table', head: ['Время', 'Пассив'], rows: [['Present Continuous', 'is being built'], ['Past Continuous', 'was being repaired'], ['Past Perfect', 'had been sold'], ['Future Perfect', 'will have been finished'], ['Infinitive', 'to be done / to have been done']] },
     { k: 'move', a: 'A hairdresser cuts my hair.', b: 'I have my hair cut.', w: 'cut' },
@@ -448,7 +448,7 @@ window.GRAMMAR = [
   g: ['A new school {is being built|is building} in our street.', 'I {had my car washed|washed my car by someone}.', 'When we came, the room {was being cleaned|was cleaning}.'],
   f: ['The museum (rebuild:is being rebuilt) at the moment. | Музей сейчас перестраивают.', 'She (have/her nails/do:had her nails done) yesterday. | Вчера ей сделали маникюр.', 'By the time we arrived, all the tickets (sell:had been sold). | К нашему приходу все билеты были проданы.'] },
 
-{ id: 'cond-3', t: 'Третий тип и смешанные условные', lvl: 'B2', v: 'third conditional mixed conditionals',
+{ id: 'cond-3', t: 'Третий тип и смешанные условные', lvl: 'B2', v: 'third conditional mixed conditionals объяснение на русском',
   b: [
     { k: 'lead', t: 'Третий тип — о прошлом, которое уже не изменить: «если бы тогда…, то…».' },
     { k: 'formula', rows: [['3', 'If', 'S', '*had', '~V3', ',', 'S', '*would have', '~V3']] },
@@ -457,7 +457,7 @@ window.GRAMMAR = [
   g: ['If I {had known|knew} about the party, I would have come.', 'If she had taken the taxi, she {would have arrived|would arrive} on time.', 'If I had saved money, I {would be|would have been} rich now.'],
   f: ['If we (leave:had left) earlier, we wouldn\'t have missed the train. | Если бы мы вышли раньше, не опоздали бы на поезд.', 'If you had asked me, I (help:would have helped) you. | Если бы ты попросил, я бы помог.', 'If he (not/break:hadn\'t broken|had not broken) his leg, he would be playing today. | Если бы он не сломал ногу, сегодня бы играл.'] },
 
-{ id: 'deduction', t: 'Модальные глаголы предположения', lvl: 'B2', v: 'modal verbs of deduction must have can\'t have',
+{ id: 'deduction', t: 'Модальные глаголы предположения', lvl: 'B2', v: 'modal verbs of deduction must have can’t have объяснение на русском',
   b: [
     { k: 'table', head: ['Уверенность', 'Сейчас', 'О прошлом'], rows: [['почти 100% да', 'must be', 'must have been'], ['возможно', 'may / might / could be', 'may / might / could have been'], ['почти 100% нет', "can't be", "can't / couldn't have been"]] },
     { k: 'ex', items: ["She isn't answering. She must be asleep. = Не отвечает. Наверняка спит.", "He can't have seen us — it was dark. = Он не мог нас видеть — было темно.", 'They might have missed the bus. = Возможно, они опоздали на автобус.'] },
@@ -466,7 +466,7 @@ window.GRAMMAR = [
   g: ["The lights are off. They {must|can't} be out.", "That {can't|mustn't} be Tom — he's in London.", 'She looks happy. She {must have passed|must pass} the exam.', 'I {might have left|might leave} my keys at school yesterday.'],
   f: ['He knows everything about cars. He (must/be:must be) a mechanic. | Он всё знает о машинах. Наверняка механик.', 'She (can\'t/forget:can\'t have forgotten) — I reminded her twice. | Она не могла забыть — я дважды напомнил.'] },
 
-{ id: 'inversion', t: 'Инверсия для усиления', lvl: 'B2', v: 'inversion in English never have I',
+{ id: 'inversion', t: 'Инверсия для усиления', lvl: 'B2', v: 'inversion in English never have I объяснение на русском',
   b: [
     { k: 'lead', t: 'Отрицательное слово в начале — вспомогательный глагол встаёт перед подлежащим, как в вопросе.' },
     { k: 'move', a: 'I have never seen such a thing.', b: 'Never have I seen such a thing.', w: 'have' },

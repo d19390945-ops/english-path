@@ -331,6 +331,8 @@ function mergeP(a, b) {
   out.stats = mo(out.stats, b.stats, mx);
   out.xpDev = mo(out.xpDev, b.xpDev, mx);
   out.usdEarn = mo(out.usdEarn, b.usdEarn, mx); out.usdSpent = mo(out.usdSpent, b.usdSpent, mx);
+  out.owned = mo(out.owned, b.owned, (x, y) => x || y);
+  { const seen = new Set(), all = [...(out.usdLog || []), ...(b.usdLog || [])].filter(x => { const k = x.t + '|' + x.n + '|' + x.w; if (seen.has(k)) return false; seen.add(k); return true; }); out.usdLog = all.sort((x, y) => y.t - x.t).slice(0, 80); }
   if (b.settings && b.settings.hideCloud && out.settings) out.settings.hideCloud = true; // «скрыть навсегда» — на всех устройствах
   out.days = mo(out.days, b.days, (x, y) => {
     const dev = mo(x.dev, y.dev, (p, q) => ({ min: mx(p.min, q.min), xp: mx(p.xp, q.xp) }));
@@ -452,13 +454,14 @@ const sfx = {
 const USD = { hint: 5, restore: 50, ach: 10 };
 const sumV = o => Object.values(o || {}).reduce((a, v) => a + v, 0);
 const usd = (p = P) => Math.max(0, sumV(p.usdEarn) - sumV(p.usdSpent));
-const updUsd = () => $$('.usd-n').forEach(x => { x.textContent = usd(); });
-function earnUsd(n) { if (!n) return; P.usdEarn = P.usdEarn || {}; P.usdEarn[DEVICE] = (P.usdEarn[DEVICE] || 0) + n; updUsd(); }
-function spendUsd(n) { if (usd() < n) return false; P.usdSpent = P.usdSpent || {}; P.usdSpent[DEVICE] = (P.usdSpent[DEVICE] || 0) + n; updUsd(); return true; }
+const updUsd = () => $$('.usd-n').forEach(x => { x.textContent = (x.dataset.pre || '') + usd(); });
+function usdNote(n, why) { P.usdLog = P.usdLog || []; P.usdLog.unshift({ t: Date.now(), n, w: why || '' }); if (P.usdLog.length > 80) P.usdLog.length = 80; }
+function earnUsd(n, why) { if (!n) return; P.usdEarn = P.usdEarn || {}; P.usdEarn[DEVICE] = (P.usdEarn[DEVICE] || 0) + n; usdNote(n, why); updUsd(); }
+function spendUsd(n, why) { if (usd() < n) return false; P.usdSpent = P.usdSpent || {}; P.usdSpent[DEVICE] = (P.usdSpent[DEVICE] || 0) + n; usdNote(-n, why); updUsd(); return true; }
 const streakLost = () => P.streak.n >= 2 && P.streak.last < today() - 1 && today() - P.streak.last <= 4;
 function restoreStreak() {
   if (!streakLost()) return;
-  if (!spendUsd(USD.restore)) return toast(`Нужно $${USD.restore}, у тебя $${usd()}. Доллары даются за уроки и достижения.`);
+  if (!spendUsd(USD.restore, 'Возврат серии')) return toast(`Нужно $${USD.restore}, у тебя $${usd()}. Доллары даются за уроки и достижения.`);
   P.streak.last = today() - 1; P.stats.restores = (P.stats.restores || 0) + 1;
   const fresh = checkAch(); save(); sfx.coin(); toast(`Серия ${P.streak.n} ${plural(P.streak.n, 'день', 'дня', 'дней')} восстановлена`); render(); popAch(fresh);
 }
@@ -661,7 +664,7 @@ function toggleFav(id) {
   $$(`[data-fav="${id}"]`).forEach(b => { b.outerHTML = favBtn(id); });
 }
 
-function checkAch() { const fresh = []; for (const a of ACH) if (!P.ach[a.id] && a.ok()) { P.ach[a.id] = today(); fresh.push(a); } earnUsd(fresh.length * USD.ach); return fresh; }
+function checkAch() { const fresh = []; for (const a of ACH) if (!P.ach[a.id] && a.ok()) { P.ach[a.id] = today(); fresh.push(a); earnUsd(USD.ach, `Достижение «${a.t}»`); } return fresh; }
 
 /* ================= схемы грамматики ================= */
 const TL = { w: 640, h: 150, x0: 36, x1: 604, y: 92 };
@@ -860,38 +863,14 @@ function render() {
         ${cloudChip()}
         <span class="chip" title="Дней подряд">${icon('flame')}${P.streak.last >= today() - 1 ? P.streak.n : 0}</span>
         <span class="chip" title="Опыт">${icon('bolt')}${P.xp}</span>
-        <a class="chip chip-usd" href="#/me" title="Доллары">${icon('dollar')}<b class="usd-n">${usd()}</b></a>
+        <button type="button" class="chip chip-usd" data-act="wallet" title="Доллары">${icon('dollar')}<b class="usd-n">${usd()}</b></button>
       </div>
     </header>
     <main class="main" id="main">${view(arg)}</main>
     <nav class="tabbar">${navHTML}</nav>
   </div>`;
   (after[cur] || (() => {}))(arg);
-  sideArt();
 }
-/* ---- американские фото по бокам (на широких экранах, где контент узкий) ---- */
-const SIDE_PH = ['img001-3', 'img005-2', 'img001-4', 'img003-2', 'img000-3', 'img009-4', 'img008', 'img004-2', 'img006-2', 'img007', 'img006-3', 'img009-3', 'img008-2', 'img006', 'img003-3', 'img002-2'];
-function sideArt() {
-  let box = $('#side-art');
-  if (!box) { box = document.createElement('div'); box.id = 'side-art'; box.setAttribute('aria-hidden', 'true'); document.body.prepend(box); }
-  const ids = SIDE_PH.filter(id => PH.has(id));
-  if (!P || ids.length < 4) { box.innerHTML = ''; box.dataset.key = ''; return layoutSide(); }
-  const key = document.body.dataset.sec + today();
-  if (box.dataset.key !== key) {
-    const h = strHash(key), pick = k => PH.get(ids[(h + k * Math.max(1, Math.floor(ids.length / 4))) % ids.length]);
-    box.innerHTML = ['l', 'r'].map((side, i) => `<div class="side side-${side}">${[0, 1].map(j => `<figure><img src="${photoSrc(pick(i * 2 + j))}" alt="" loading="lazy"></figure>`).join('')}</div>`).join('');
-    box.dataset.key = key;
-  }
-  layoutSide();
-}
-function layoutSide() {
-  const box = $('#side-art'), c = $('#main > .page') || $('#main');
-  const g = box && box.firstChild && c ? Math.floor(c.getBoundingClientRect().left) - 36 : 0;
-  if (!box) return;
-  box.classList.toggle('on', g >= 170);
-  if (g >= 170) box.style.setProperty('--sw', Math.min(g, 340) + 'px');
-}
-addEventListener('resize', () => layoutSide());
 const after = {
   path() {
     drawTracks();
@@ -1062,7 +1041,7 @@ function renderPicker(names) {
   app.innerHTML = authFrame(`
     <div class="auth-card">
       ${names.length ? `<h2>Кто занимается?</h2>
-      <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<button class="who-btn" data-nick="${esc(n)}"><span class="ava">${esc(n[0].toUpperCase())}</span><span><b>${esc(n)}</b><small>${isGen(p) ? 'своя программа' : p.grade + ' класс'}, ${p.xp} XP${p.cloud ? ', в облаке' : ''}</small></span>${p.cloud ? icon('cloud', 'muted') : p.pass ? icon('lock', 'muted') : ''}</button>`; }).join('')}</div>
+      <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<button class="who-btn" data-nick="${esc(n)}">${avaHTML(p)}<span><b>${esc(n)}</b><small>${isGen(p) ? 'своя программа' : p.grade + ' класс'}, ${p.xp} XP${p.cloud ? ', в облаке' : ''}</small></span>${p.cloud ? icon('cloud', 'muted') : p.pass ? icon('lock', 'muted') : ''}</button>`; }).join('')}</div>
       <form id="pw" class="hidden" novalidate><label class="field"><span>Пароль</span><input type="password" name="pass" autocomplete="current-password"></label><p class="err" id="err"></p><div class="row-end"><button class="btn">Войти</button></div></form>` : '<h2>Добро пожаловать</h2><p class="muted">Начни с нуля или войди, если уже занимаешься на другом устройстве.</p>'}
       <button class="btn btn-wide" data-act="new">Новый ученик</button>
       ${sb ? `<button class="btn btn-ghost btn-wide" data-act="cloud">${icon('cloud')}Уже занимаюсь — войти</button>
@@ -1442,7 +1421,7 @@ function studentSummary(row) {
     const st = nextStep(), lb = stepLabel(st);
     const curG = st ? (st.l ? st.l.unit.grade : st.u ? st.u.grade : st.g) : 11;
     return {
-      nick: row.nick, mode: P.mode, label: isGen() ? 'своя программа' : `${P.grade} класс`,
+      nick: row.nick, uid: row.user_id, avatar: P.avatar, mode: P.mode, label: isGen() ? 'своя программа' : `${P.grade} класс`,
       xp: P.xp, lessons: Object.keys(P.lessons).length, units: Object.values(P.units).filter(u => u.passed).length,
       streak: P.streak.last >= t - 1 ? P.streak.n : 0, week: Math.round(week), last: row.updated_at,
       now: st ? `${gTitle(curG)}: ${lb.t}` : 'курс пройден', words: Object.keys(P.words).length,
@@ -1467,7 +1446,7 @@ async function loadAdmin(arg) {
     </div>
     <div class="adm-table">${list.map(s => `
       <a class="adm-row" href="#/admin/${encodeURIComponent(s.nick)}">
-        <span class="ava">${esc(s.nick[0].toUpperCase())}</span>
+        ${avaHTML({ nick: s.nick, avatar: s.avatar })}
         <span class="adm-name"><b>${esc(s.nick)}</b><small>${esc(s.label)} · сейчас: ${esc(s.now)}</small></span>
         <span class="adm-num"><b>${s.lessons}</b><small>уроков</small></span>
         <span class="adm-num"><b>${s.week}</b><small>мин / 7 дн</small></span>
@@ -1487,7 +1466,7 @@ function adminDetail(box, row) {
     const tests = Object.entries(P.units).map(([k, v]) => ({ u: UNITS.get(k), v })).filter(x => x.u);
     return `
       <a class="back" href="#/admin">${icon('back')}Все ученики</a>
-      <div class="me-head"><span class="ava big">${esc(P.nick[0].toUpperCase())}</span><div class="me-name"><h2 class="page-h">${esc(P.nick)}</h2>
+      <div class="me-head">${avaHTML(P, 'big')}<div class="me-name"><h2 class="page-h">${esc(P.nick)}</h2>
         <p class="muted">${isGen() ? 'Своя программа' : P.grade + ' класс'}${P.purpose ? ', ' + esc(PURPOSES[P.purpose] || '') : ''} · цель: ${esc(goalName())}, ${P.goal.minutes} мин/день · с ${new Date(P.created).toLocaleDateString(LOC)}</p></div></div>
       <div class="stat-row">
         <div class="stat c-red"><i class="stat-ic">${miniFlag()}</i><b>${Object.keys(P.lessons).length}</b><span>уроков</span></div>
@@ -1504,7 +1483,16 @@ function adminDetail(box, row) {
       <h3 class="h-sub">Что делал</h3>
       ${logs.length ? `<ul class="cd-log">${logs.map(x => `<li><span class="muted">${fmtDate(x.d)}:</span> ${esc(x.l)}</li>`).join('')}</ul>` : '<p class="empty">Пока нет записей.</p>'}`;
   });
-  box.innerHTML = html;
+  const self = P.cloud && row.user_id === P.cloud.uid;
+  box.innerHTML = html + (self ? '' : `<div class="adm-danger"><button type="button" class="btn btn-sm btn-danger" data-del>${icon('x')}Удалить ученика</button><p class="muted small">Аккаунт и весь прогресс удалятся навсегда — вернуть нельзя.</p></div>`);
+  const del = $('[data-del]', box);
+  del && del.addEventListener('click', async () => {
+    if (!await confirmBox(`Удалить ученика «${row.nick}»? Аккаунт и весь прогресс удалятся навсегда.`, 'Удалить', 'Отмена')) return;
+    del.disabled = true;
+    const { error } = await sb.rpc('admin_delete_user', { p_uid: row.user_id });
+    if (error) { del.disabled = false; return toast(/function|schema cache|not find/i.test(error.message) ? 'Удаление ещё не включено в базе — попроси Claude запустить SQL.' : cloudErr(error)); }
+    ADM = null; toast(`Ученик «${row.nick}» удалён`); location.hash = '#/admin';
+  });
 }
 
 function viewReview() {
@@ -1528,15 +1516,16 @@ function viewMe() {
   const lessons = Object.keys(P.lessons).length, pi = planInfo();
   return `
   <div class="page">
-    ${(() => { const cv = PHOTOS.length ? PHOTOS[strHash('cover' + P.nick + today()) % PHOTOS.length] : null; return `
-    <section class="me-cover ${cv ? 'has-img' : ''}">
-      ${cv ? `<img class="me-cover-img" src="${photoSrc(cv)}" alt="">` : ''}
+    ${(() => { const cv = coverSrc(); return `
+    <section class="me-cover ${cv ? 'has-img' : ''} ${P.cover ? 'own-cover' : ''}">
+      ${cv ? `<img class="me-cover-img" src="${cv}" alt="">` : ''}
+      <button type="button" class="cover-btn" data-me-cover>${icon('image')}Обложка</button>
       <div class="me-head" id="mehead">${meHeadHTML()}</div>
     </section>`; })()}
     ${sb && P.cloud && P.settings.hideCloud ? '' : `<section class="cloud-card" id="cloudcard">${cloudCardHTML()}</section>`}
     <div class="stat-row">
       <div class="stat c-gold"><i class="stat-ic">${icon('bolt')}</i><b>${P.xp}</b><span>опыт</span></div>
-      <div class="stat c-green"><i class="stat-ic">${icon('dollar')}</i><b class="usd-n">${usd()}</b><span>долларов</span></div>
+      <button type="button" class="stat c-green stat-btn" data-act="wallet"><i class="stat-ic">${icon('dollar')}</i><b class="usd-n">${usd()}</b><span>долларов · подробнее</span></button>
       <div class="stat c-orange"><i class="stat-ic">${icon('flame')}</i><b>${P.streak.best}</b><span>лучшая серия</span></div>
       <div class="stat c-red"><i class="stat-ic">${miniFlag()}</i><b>${lessons}</b><span>${plural(lessons, 'урок', 'урока', 'уроков')}</span></div>
       <div class="stat c-blue"><i class="stat-ic">${icon('clock')}</i><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
@@ -1575,13 +1564,224 @@ function viewMe() {
     </div>
   </div>`;
 }
+/* ================= аватары, обложка, кошелёк ================= */
+const ANIMALS = [['eagle', 'Орёл'], ['duck', 'Утёнок'], ['fox', 'Лис'], ['bear', 'Медведь'], ['cat', 'Кот'], ['panda', 'Панда'], ['owl', 'Сова'], ['raccoon', 'Енот']];
+const AV_BG = ['#3C3B6E', '#B22234', '#2EC4D6', '#3CCB7F', '#F5B83D', '#A97CFF', '#FF6FA8', '#26272D'];
+const ACC = [
+  { id: 'bowtie', t: 'Бабочка', slot: 'neck', p: 15 },
+  { id: 'glasses', t: 'Тёмные очки', slot: 'eyes', p: 20 },
+  { id: 'cap', t: 'Бейсболка USA', slot: 'head', p: 30 },
+  { id: 'phones', t: 'Наушники', slot: 'head', p: 35 },
+  { id: 'cowboy', t: 'Ковбойская шляпа', slot: 'head', p: 40 },
+  { id: 'grad', t: 'Шапочка выпускника', slot: 'head', p: 60 },
+  { id: 'liberty', t: 'Корона Свободы', slot: 'head', p: 80 },
+  { id: 'crown', t: 'Золотая корона', slot: 'head', p: 100 },
+];
+// все звери нарисованы вокруг одной головы (центр 50,58, радиус ~30) — поэтому аксессуары садятся на любого
+const eyes2 = (x1, x2, y, f) => f(x1, y) + f(x2, y);
+const ANIMAL_SVG = {
+  eagle: `<path d="M10 100Q14 78 50 80Q86 78 90 100Z" fill="#5B3A1E"/><ellipse cx="50" cy="56" rx="27" ry="29" fill="#FAFAF7"/>`
+    + eyes2(40, 60, 54, (x, y) => `<circle cx="${x}" cy="${y}" r="4.3" fill="#F2B231"/><circle cx="${x}" cy="${y}" r="2.3" fill="#1a1a1a"/>`)
+    + `<path d="M32 48.5L46 51.5M68 48.5L54 51.5" stroke="#3a3a3a" stroke-width="2.6" stroke-linecap="round"/><path d="M43 60Q50 56 57 60L55 68Q51 78 47 71Q44 66 43 60Z" fill="#F5B300"/><path d="M47 71Q50 74 53.5 68" stroke="#C98600" stroke-width="1.5" fill="none"/>`,
+  duck: `<ellipse cx="50" cy="98" rx="32" ry="14" fill="#FFC71F"/><path d="M45 31Q47 19 54 25Q53 21 59 23Q54 30 50 32Z" fill="#FFC71F"/><circle cx="50" cy="57" r="29" fill="#FFD43B"/>`
+    + `<circle cx="33" cy="65" r="5" fill="#FF8FA0" opacity=".5"/><circle cx="67" cy="65" r="5" fill="#FF8FA0" opacity=".5"/>`
+    + eyes2(40, 60, 53, (x, y) => `<circle cx="${x}" cy="${y}" r="4" fill="#1d1d1d"/><circle cx="${x + 1.4}" cy="${y - 1.4}" r="1.3" fill="#fff"/>`)
+    + `<ellipse cx="50" cy="66" rx="13" ry="6.5" fill="#FF9F1C"/><path d="M38 66Q50 70 62 66" stroke="#E07B00" stroke-width="1.6" fill="none"/>`,
+  fox: `<path d="M24 46L28 15L45 34Z" fill="#E8692A"/><path d="M76 46L72 15L55 34Z" fill="#E8692A"/><path d="M28.5 38L30.5 22L39.5 33Z" fill="#3B2416"/><path d="M71.5 38L69.5 22L60.5 33Z" fill="#3B2416"/>`
+    + `<path d="M19 50Q21 29 50 29Q79 29 81 50Q81 72 50 87Q19 72 19 50Z" fill="#F07C2A"/><path d="M27 59Q40 61 50 72Q60 61 73 59Q67 81 50 87Q33 81 27 59Z" fill="#FFF4E6"/>`
+    + eyes2(39, 61, 53, (x, y) => `<ellipse cx="${x}" cy="${y}" rx="3.3" ry="4" fill="#1d1d1d"/><circle cx="${x + 1}" cy="${y - 1.4}" r="1" fill="#fff"/>`)
+    + `<ellipse cx="50" cy="72" rx="4.2" ry="3.1" fill="#1d1d1d"/>`,
+  bear: eyes2(27, 73, 34, (x, y) => `<circle cx="${x}" cy="${y}" r="10" fill="#8B5A3C"/><circle cx="${x}" cy="${y}" r="5" fill="#C99A72"/>`)
+    + `<circle cx="50" cy="58" r="30" fill="#8B5A3C"/><ellipse cx="50" cy="68" rx="14" ry="11" fill="#D9B38C"/>`
+    + eyes2(40, 60, 53, (x, y) => `<circle cx="${x}" cy="${y}" r="3.3" fill="#1d1d1d"/><circle cx="${x + 1}" cy="${y - 1.2}" r="1" fill="#fff"/>`)
+    + `<ellipse cx="50" cy="63" rx="5.2" ry="3.7" fill="#3B2416"/><path d="M50 66.5V70.5M45 72Q50 75.5 55 72" stroke="#3B2416" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+  cat: `<path d="M23 47L23 17L46 32Z" fill="#9AA3AE"/><path d="M77 47L77 17L54 32Z" fill="#9AA3AE"/><path d="M27.5 40L27.5 25.5L38.5 33Z" fill="#F4A6B8"/><path d="M72.5 40L72.5 25.5L61.5 33Z" fill="#F4A6B8"/>`
+    + `<ellipse cx="50" cy="58" rx="30" ry="28" fill="#AEB6C0"/><path d="M50 31V39M44 32V37.5M56 32V37.5" stroke="#8A939E" stroke-width="2.4" stroke-linecap="round"/>`
+    + eyes2(40, 60, 55, (x, y) => `<ellipse cx="${x}" cy="${y}" rx="3.8" ry="4.8" fill="#43A047"/><ellipse cx="${x}" cy="${y}" rx="1.3" ry="3.7" fill="#111"/>`)
+    + `<path d="M47 64H53L50 67.5Z" fill="#F48FB1"/><path d="M50 67.5Q47 71 44 69M50 67.5Q53 71 56 69" stroke="#555" stroke-width="1.3" fill="none"/><path d="M30 64L17 62M30 68L17 70M70 64L83 62M70 68L83 70" stroke="#F2F2F2" stroke-width="1.2" stroke-linecap="round"/>`,
+  panda: eyes2(27, 73, 34, (x, y) => `<circle cx="${x}" cy="${y}" r="10" fill="#1E1E1E"/>`)
+    + `<circle cx="50" cy="58" r="30" fill="#FAFAFA"/><ellipse cx="39" cy="55" rx="7" ry="9.5" transform="rotate(28 39 55)" fill="#1E1E1E"/><ellipse cx="61" cy="55" rx="7" ry="9.5" transform="rotate(-28 61 55)" fill="#1E1E1E"/>`
+    + eyes2(40, 60, 54, (x, y) => `<circle cx="${x}" cy="${y}" r="2.7" fill="#fff"/><circle cx="${x + 0.6}" cy="${y}" r="1.3" fill="#111"/>`)
+    + `<ellipse cx="50" cy="66" rx="4.5" ry="3" fill="#1E1E1E"/><path d="M50 69Q47 72 44 70.5M50 69Q53 72 56 70.5" stroke="#1E1E1E" stroke-width="1.4" fill="none"/>`,
+  owl: `<path d="M24 41L21 19L39 32Z" fill="#6D4C41"/><path d="M76 41L79 19L61 32Z" fill="#6D4C41"/><ellipse cx="50" cy="60" rx="31" ry="32" fill="#8D6E63"/>`
+    + `<path d="M34 84q4 4 8 0q4 4 8 0q4 4 8 0q4 4 8 0" stroke="#6D4C41" stroke-width="1.6" fill="none"/>`
+    + eyes2(38, 62, 54, (x, y) => `<circle cx="${x}" cy="${y}" r="11" fill="#F3E5D8"/><circle cx="${x}" cy="${y}" r="5.6" fill="#F5B300"/><circle cx="${x}" cy="${y}" r="3" fill="#111"/><circle cx="${x + 1.2}" cy="${y - 1.4}" r="1" fill="#fff"/>`)
+    + `<path d="M46 62H54L50 70Z" fill="#F59E0B"/>`,
+  raccoon: `<path d="M24 43L26 17L43 30Z" fill="#7B8189"/><path d="M76 43L74 17L57 30Z" fill="#7B8189"/><path d="M28 37L29 24L37 30Z" fill="#2B2B2B"/><path d="M72 37L71 24L63 30Z" fill="#2B2B2B"/>`
+    + `<ellipse cx="50" cy="58" rx="31" ry="28" fill="#9EA4AB"/><path d="M22 62Q36 52 50 66Q64 52 78 62Q70 82 50 85Q30 82 22 62Z" fill="#EDEFF1"/>`
+    + `<path d="M21 52Q36 42 50 54Q64 42 79 52Q74 62 62 60Q50 58 50 58Q50 58 38 60Q26 62 21 52Z" fill="#2B2B2B"/><path d="M30 45Q38 41 46 46M54 46Q62 41 70 45" stroke="#EDEFF1" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+    + eyes2(39, 61, 53, (x, y) => `<circle cx="${x}" cy="${y}" r="2.9" fill="#fff"/><circle cx="${x}" cy="${y}" r="1.6" fill="#111"/>`)
+    + `<ellipse cx="50" cy="68" rx="4.2" ry="3" fill="#2B2B2B"/>`,
+};
+const libertySpikes = () => [-60, -40, -20, 0, 20, 40, 60].map(a => {
+  const r = a * Math.PI / 180, cx = 50, cy = 42, p = (rad, d) => `${(cx + rad * Math.sin(r + d)).toFixed(1)} ${(cy - rad * Math.cos(r + d)).toFixed(1)}`;
+  return `<path d="M${p(13, -0.13)}L${p(31, 0)}L${p(13, 0.13)}Z" fill="#3FA796" stroke="#2C7A6C" stroke-width="1"/>`;
+}).join('');
+const ACC_SVG = {
+  bowtie: `<path d="M50 88L36 81V95Z" fill="#D7263D"/><path d="M50 88L64 81V95Z" fill="#D7263D"/><rect x="46.5" y="84.5" width="7" height="7" rx="2" fill="#A61B2E"/>`,
+  glasses: `<rect x="29" y="48" width="18" height="12" rx="5" fill="#111"/><rect x="53" y="48" width="18" height="12" rx="5" fill="#111"/><path d="M47 52Q50 50 53 52" stroke="#111" stroke-width="2.4" fill="none"/><path d="M29 52L21 50M71 52L79 50" stroke="#111" stroke-width="2" stroke-linecap="round"/><path d="M32.5 51.5h5M56.5 51.5h5" stroke="#fff" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/>`,
+  cap: `<path d="M24 37Q24 12 50 12Q76 12 76 37Z" fill="#1F3A93"/><path d="M50 12Q46 24 48 37" stroke="#16296B" stroke-width="1.5" fill="none"/><path d="M22 37Q50 31 88 39Q86 44 76 43Q50 39 24 42Z" fill="#16296B"/><rect x="54" y="20" width="14" height="9" rx="1.5" fill="#B22234"/><path d="M54 23h14M54 26h14" stroke="#fff" stroke-width="1.2"/><rect x="54" y="20" width="6" height="5" fill="#3C3B6E"/><circle cx="50" cy="12.5" r="2" fill="#16296B"/>`,
+  phones: `<path d="M20 58Q20 20 50 20Q80 20 80 58" stroke="#2B2D42" stroke-width="6" fill="none" stroke-linecap="round"/><rect x="11" y="47" width="14" height="23" rx="6" fill="#E63946"/><rect x="75" y="47" width="14" height="23" rx="6" fill="#E63946"/><rect x="14" y="51" width="4" height="15" rx="2" fill="#fff" opacity=".35"/>`,
+  cowboy: `<ellipse cx="50" cy="32" rx="38" ry="7" fill="#7A4A21"/><path d="M30 32Q30 9 42 12Q50 18 58 12Q70 9 70 32Z" fill="#9C6331"/><path d="M31 26Q50 30 69 26V31Q50 35 31 31Z" fill="#3B2416"/><path d="M12 31Q14 24 21 29M88 31Q86 24 79 29" stroke="#7A4A21" stroke-width="3" fill="none" stroke-linecap="round"/>`,
+  grad: `<path d="M32 27Q32 35 50 35Q68 35 68 27V20H32Z" fill="#222"/><path d="M13 18L50 6L87 18L50 30Z" fill="#2E2E2E"/><circle cx="50" cy="18" r="2" fill="#F5C542"/><path d="M50 18Q70 20 76 22V38" stroke="#F5C542" stroke-width="2" fill="none"/><path d="M73 36h6l-1 8h-4z" fill="#F5C542"/>`,
+  liberty: () => libertySpikes() + `<path d="M25 37Q50 26 75 37L73 43Q50 33 27 43Z" fill="#3FA796" stroke="#2C7A6C" stroke-width="1"/>`,
+  crown: `<path d="M28 35L30 14L40 25L50 10L60 25L70 14L72 35Z" fill="#F5C542" stroke="#D49A1B" stroke-width="1.5" stroke-linejoin="round"/><rect x="28" y="31" width="44" height="6" rx="2" fill="#E0A82E"/><circle cx="50" cy="23" r="2.7" fill="#E63946"/><circle cx="38" cy="28" r="2" fill="#2EC4D6"/><circle cx="62" cy="28" r="2" fill="#2EC4D6"/><circle cx="30" cy="14" r="2" fill="#F5C542"/><circle cx="50" cy="10" r="2" fill="#F5C542"/><circle cx="70" cy="14" r="2" fill="#F5C542"/>`,
+};
+const accSvg = id => { const a = ACC_SVG[id]; return typeof a === 'function' ? a() : (a || ''); };
+function avatarSVG(av) {
+  const acc = av.acc || {};
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${av.bg || AV_BG[0]}"/><g>${ANIMAL_SVG[av.id] || ANIMAL_SVG.eagle}</g>${['neck', 'eyes', 'head'].map(s => accSvg(acc[s])).join('')}</svg>`;
+}
+// аватар профиля: своё фото → зверёк → первая буква ника
+function avaHTML(p, cls = '') {
+  const av = p && p.avatar, nick = (p && p.nick) || '?';
+  if (av && av.type === 'img' && av.data) return `<span class="ava ava-pic ${cls}"><img src="${av.data}" alt=""></span>`;
+  if (av && av.type === 'animal') return `<span class="ava ava-pic ${cls}">${avatarSVG(av)}</span>`;
+  return `<span class="ava ${cls}">${esc(nick[0].toUpperCase())}</span>`;
+}
+// уменьшаем картинку на устройстве — в облако уходит небольшая JPEG-строка
+function readImage(file, maxW, maxH, square, q) {
+  return new Promise((res, rej) => {
+    if (!file || !/^image\//.test(file.type)) return rej(new Error('type'));
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      let sw = img.naturalWidth, sh = img.naturalHeight, sx = 0, sy = 0;
+      if (square) { const m = Math.min(sw, sh); sx = (sw - m) / 2; sy = (sh - m) / 2; sw = sh = m; }
+      const k = Math.min(1, maxW / sw, maxH / sh), c = document.createElement('canvas');
+      c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+      c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', q));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('load')); };
+    img.src = url;
+  });
+}
+// всплывающее окно-лист
+function sheet(title, body, onClose) {
+  const d = document.createElement('div'); d.className = 'modal sheet-wrap';
+  d.innerHTML = `<div class="sheet" role="dialog" aria-label="${esc(title)}"><div class="sheet-h"><h3>${esc(title)}</h3><button type="button" class="icon-btn" data-close aria-label="Закрыть">${icon('x')}</button></div><div class="sheet-b">${body}</div></div>`;
+  document.body.appendChild(d); requestAnimationFrame(() => d.classList.add('in'));
+  const close = () => { d.remove(); document.removeEventListener('keydown', esc_); if (onClose) onClose(); };
+  const esc_ = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', esc_);
+  d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-close]')) close(); });
+  return { el: d, body: $('.sheet-b', d), close };
+}
+
+/* ---- кошелёк ---- */
+function openWallet() {
+  const left = ACH.filter(a => (SHOW_DREAM || !a.id.startsWith('cards')) && !P.ach[a.id]).length;
+  const row = (ic, c, t, v) => `<li class="c-${c}"><i class="stat-ic">${icon(ic)}</i><span>${t}</span><b>${v}</b></li>`;
+  const log = (P.usdLog || []).slice(0, 40);
+  sheet('Доллары', `
+    <div class="wal-bal">${icon('dollar')}<b class="usd-n">${usd()}</b><span>на счету</span></div>
+    <h4 class="sheet-k">Как заработать</h4>
+    <ul class="wal-list">
+      ${row('path', 'red', 'Урок (повторный — $2)', '+$5')}
+      ${row('trophy', 'gold', 'Медаль за урок: бронза $2 · серебро $4 · золото $6 · «Идеально» $10', 'до +$10')}
+      ${row('flag', 'blue', 'Тест модуля', '+$15')}
+      ${row('star', 'violet', 'Итоговая контрольная', '+$40')}
+      ${row('repeat', 'teal', 'Повторение или тренировка темы', '+$3')}
+      ${row('target', 'pink', `Достижение (осталось получить: ${left})`, '+$10')}
+    </ul>
+    <h4 class="sheet-k">На что потратить</h4>
+    <ul class="wal-list">
+      ${row('bulb', 'gold', 'Подсказка в задании', `$${USD.hint}`)}
+      ${row('flame', 'orange', 'Вернуть прерванную серию', `$${USD.restore}`)}
+      ${row('user', 'green', 'Аксессуары для аватара', `от $${Math.min(...ACC.map(a => a.p))}`)}
+    </ul>
+    <button type="button" class="btn btn-sm" data-shop>${icon('user')}Открыть магазин аватара</button>
+    <h4 class="sheet-k">История</h4>
+    ${log.length ? `<ul class="wal-log">${log.map(x => `<li><span class="muted">${new Date(x.t).toLocaleDateString(LOC, { day: 'numeric', month: 'short' })}</span><span>${esc(x.w)}</span><b class="${x.n < 0 ? 'neg' : ''}">${x.n < 0 ? '−' : '+'}$${Math.abs(x.n)}</b></li>`).join('')}</ul>`
+    : '<p class="empty">Пока пусто. Пройди урок — и здесь появятся первые доллары.</p>'}`);
+  const s = $('.sheet-wrap:last-of-type'); $('[data-shop]', s).onclick = () => { s.remove(); openAvatar('acc'); };
+}
+
+/* ---- аватар и магазин ---- */
+function openAvatar(tab = 'animal') {
+  P.owned = P.owned || {};
+  const draft = () => (P.avatar && P.avatar.type === 'animal') ? P.avatar : { type: 'animal', id: 'eagle', bg: AV_BG[0], acc: {} };
+  const sh = sheet('Аватар', '', () => { if (!S) render(); });
+  const paint = () => {
+    const d = draft();
+    sh.body.innerHTML = `
+      <div class="av-top"><div class="av-prev">${avaHTML(P, 'huge')}</div>
+        <div class="av-info"><b>${esc(P.nick)}</b><span class="muted small">На счету <b class="usd-n" data-pre="$">$${usd()}</b></span>
+        ${P.avatar ? '<button type="button" class="link-btn" data-av-reset>Вернуть букву</button>' : ''}</div></div>
+      <div class="seg av-tabs">${[['animal', 'Зверёк'], ['acc', 'Аксессуары'], ['photo', 'Своё фото']].map(([k, t]) => `<button type="button" class="opt ${tab === k ? 'sel' : ''}" data-tab="${k}">${t}</button>`).join('')}</div>
+      ${tab === 'animal' ? `
+        <div class="av-grid">${ANIMALS.map(([id, t]) => `<button type="button" class="av-tile ${P.avatar && P.avatar.type === 'animal' && P.avatar.id === id ? 'sel' : ''}" data-animal="${id}">${avatarSVG({ ...d, id })}<span>${t}</span></button>`).join('')}</div>
+        <p class="sheet-k">Фон</p>
+        <div class="av-bgs">${AV_BG.map(c => `<button type="button" class="av-bg ${d.bg === c ? 'sel' : ''}" data-bg="${c}" style="background:${c}" aria-label="Фон"></button>`).join('')}</div>`
+      : tab === 'acc' ? `
+        <p class="muted small">Аксессуары покупаются за доллары один раз и надеваются на любого зверька. Нажми ещё раз — снимешь.</p>
+        <div class="av-grid">${ACC.map(a => {
+          const own = !!P.owned[a.id], on = d.acc && d.acc[a.slot] === a.id;
+          return `<button type="button" class="av-tile ${on ? 'sel' : ''} ${own ? 'own' : ''}" data-acc="${a.id}">${avatarSVG({ ...d, acc: { [a.slot]: a.id } })}<span>${a.t}</span><em>${on ? 'Надето' : own ? 'Надеть' : `$${a.p}`}</em></button>`;
+        }).join('')}</div>`
+      : `
+        <p class="muted small">Фото обрежется в круг и уменьшится. Его увидишь ты и твой репетитор.</p>
+        <label class="btn btn-sm file-btn">${icon('image')}Загрузить фото<input type="file" accept="image/*" data-av-file></label>`}`;
+  };
+  paint();
+  sh.body.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.tab) { tab = b.dataset.tab; return paint(); }
+    if ('avReset' in b.dataset) { P.avatar = null; save(); return paint(); }
+    const d = draft();
+    if (b.dataset.animal) { P.avatar = { ...d, type: 'animal', id: b.dataset.animal }; save(); sfx.coin(); return paint(); }
+    if (b.dataset.bg) { P.avatar = { ...d, type: 'animal', bg: b.dataset.bg }; save(); return paint(); }
+    if (b.dataset.acc) {
+      const a = ACC.find(x => x.id === b.dataset.acc);
+      if (!P.owned[a.id]) {
+        if (usd() < a.p) return toast(`Нужно $${a.p}, у тебя $${usd()}. Доллары даются за уроки и достижения.`);
+        spendUsd(a.p, `Аксессуар «${a.t}»`); P.owned[a.id] = true; sfx.ach(); vibe([20, 30, 20]); toast(`Куплено: ${a.t}`);
+      }
+      const acc = { ...(d.acc || {}) }; acc[a.slot] = acc[a.slot] === a.id && P.avatar && P.avatar.type === 'animal' ? undefined : a.id;
+      P.avatar = { ...d, type: 'animal', acc }; save(); return paint();
+    }
+  });
+  sh.body.addEventListener('change', async e => {
+    const f = e.target.closest('[data-av-file]'); if (!f || !f.files[0]) return;
+    try { P.avatar = { type: 'img', data: await readImage(f.files[0], 240, 240, true, 0.82) }; save(); toast('Фото поставлено'); paint(); }
+    catch { toast('Не получилось открыть фото. Попробуй другое (JPG или PNG).'); }
+  });
+}
+
+/* ---- обложка профиля ---- */
+const COVER_PH = () => PHOTOS.filter(p => ['america', 'city', 'travel', 'nature'].includes(p.c));
+function coverSrc() {
+  const c = P.cover;
+  if (c && c.img) return c.img;
+  if (c && c.id && PH.get(c.id)) return photoSrc(PH.get(c.id));
+  const cv = PHOTOS.length ? PHOTOS[strHash('cover' + P.nick + today()) % PHOTOS.length] : null;
+  return cv ? photoSrc(cv) : '';
+}
+function openCover() {
+  const list = COVER_PH();
+  const sh = sheet('Обложка профиля', `
+    <div class="row"><label class="btn btn-sm file-btn">${icon('image')}Загрузить своё фото<input type="file" accept="image/*" data-cv-file></label>
+    <button type="button" class="btn btn-ghost btn-sm" data-cv="auto">${icon('repeat')}Новая каждый день</button></div>
+    <p class="sheet-k">Или выбери из коллекции</p>
+    <div class="cv-grid">${list.map(p => `<button type="button" class="cv-tile ${P.cover && P.cover.id === p.id ? 'sel' : ''}" data-cv="${p.id}"><img src="${photoSrc(p, true)}" alt="" loading="lazy"></button>`).join('')}</div>`, () => { if (!S) render(); });
+  sh.body.addEventListener('click', e => {
+    const b = e.target.closest('[data-cv]'); if (!b) return;
+    P.cover = b.dataset.cv === 'auto' ? null : { id: b.dataset.cv }; save(); sh.close();
+  });
+  sh.body.addEventListener('change', async e => {
+    const f = e.target.closest('[data-cv-file]'); if (!f || !f.files[0]) return;
+    try { P.cover = { img: await readImage(f.files[0], 1000, 700, false, 0.7) }; save(); toast('Обложка обновлена'); sh.close(); }
+    catch { toast('Не получилось открыть фото. Попробуй другое (JPG или PNG).'); }
+  });
+}
+
 /* ---- имя ---- */
 function meHeadHTML(edit = false) {
   const sub = `${isGen() ? 'Своя программа' + (P.purpose ? ', ' + PURPOSES[P.purpose].toLowerCase() : '') : P.grade + ' класс'}, с ${new Date(P.created).toLocaleDateString(LOC)}`;
-  if (!edit) return `<span class="ava big">${esc(P.nick[0].toUpperCase())}</span>
+  if (!edit) return `<button type="button" class="ava-edit" data-me-ava aria-label="Сменить аватар">${avaHTML(P, 'big')}<i>${icon('pencil')}</i></button>
     <div class="me-name"><h1 class="page-h">${esc(P.nick)}</h1><p class="muted">${sub}</p></div>
     <div class="me-btns"><button class="btn btn-ghost btn-sm" data-me="rename">${icon('pencil')}Изменить имя</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon('door')}Выйти</button></div>`;
-  return `<span class="ava big">${esc(P.nick[0].toUpperCase())}</span>
+  return `${avaHTML(P, 'big')}
     <form class="rename" id="rename" novalidate>
       <label class="field"><span>Новое имя</span><input name="nick" maxlength="20" autocomplete="off" value="${esc(P.nick)}"></label>
       ${P.pass ? '<label class="field"><span>Текущий пароль — для подтверждения</span><input name="pass" type="password" autocomplete="current-password"></label>' : ''}
@@ -1760,6 +1960,7 @@ function bindCal() {
 
 function bindMe() {
   bindCal(); bindCloudCard();
+  $('.me-cover').addEventListener('click', e => { if (e.target.closest('[data-me-cover]')) openCover(); if (e.target.closest('[data-me-ava]')) openAvatar(); });
   const head = $('#mehead');
   head.addEventListener('click', e => {
     const b = e.target.closest('[data-me]'); if (!b) return;
@@ -1823,6 +2024,7 @@ document.addEventListener('click', e => {
   if (act === 'next') { const s = nextStep(); if (!s) return; if (s.kind === 'lesson') startLesson(s.l); else if (s.kind === 'test') startTest(s.u); else startFinal(s.g); }
   if (act === 'review') startReview();
   if (act === 'restore') restoreStreak();
+  if (act === 'wallet') openWallet();
   if (act === 'logout') {
     if (P.cloud && sb) { const t = cloudReady ? pushNow() : Promise.resolve(); t.finally(() => sb.auth.signOut({ scope: 'local' }).catch(() => {})); }
     cloudReady = false; P = null; DB.current = null; save(); onb = null; viewGrade = null; cal = null; app.innerHTML = ''; location.hash = ''; render(); }
@@ -2106,7 +2308,7 @@ function check() {
 function useHint(ex) {
   const st = $('#stage'), b = $('.hint-btn', st), out = $('.hint-out', st);
   if (!b || S.phase !== 'ex' || cur.hint) return;
-  if (!spendUsd(USD.hint)) { toast(`Подсказка стоит $${USD.hint}, у тебя $${usd()}. Доллары даются за уроки.`); return; }
+  if (!spendUsd(USD.hint, 'Подсказка')) { toast(`Подсказка стоит $${USD.hint}, у тебя $${usd()}. Доллары даются за уроки.`); return; }
   cur.hint = true; b.disabled = true; sfx.coin(); vibe(15); save();
   const ans = String(ex.answer ?? ex.en ?? '').split('|')[0].trim();
   if (['pick', 'listen', 'gap'].includes(ex.type)) {
@@ -2170,7 +2372,7 @@ function finish() {
   const medal = S.mode === 'lesson' ? (acc >= 100 ? 'perfect' : acc >= 90 ? 'gold' : acc >= 80 ? 'silver' : acc >= 70 ? 'bronze' : null) : null;
   const cash = S.mode === 'lesson' ? (P.lessons[S.l.key].n > 1 ? 2 : 5) + ({ bronze: 2, silver: 4, gold: 6, perfect: 10 }[medal] || 0)
     : S.mode === 'test' ? (passed ? 15 : 0) : S.mode === 'final' ? (passed ? 40 : 0) : 3;
-  earnUsd(cash);
+  earnUsd(cash, S.mode === 'lesson' ? `Урок «${S.l.t}»${medal ? ' · ' + MEDALS[medal].split(' · ')[0].toLowerCase() : ''}` : S.mode === 'test' ? `Тест модуля «${S.u.title}»` : S.mode === 'final' ? `Итоговая ${gOf(S.g)}` : S.mode === 'review' ? 'Повторение' : `Тема «${S.topic.t}»`);
   P.xp += xp; d.xp += xp; dv.xp += xp;
   P.xpDev = P.xpDev || {}; P.xpDev[DEVICE] = (P.xpDev[DEVICE] || 0) + xp;
   // дневник для календаря

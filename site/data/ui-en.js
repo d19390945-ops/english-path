@@ -1044,7 +1044,67 @@ window.UI_EN = {
 "На другом устройстве открой сайт → «Уже занимаюсь — войти» → почта": "On another device, open the site → \"I already study — log in\" → email",
 "На другом устройстве открой сайт → «Уже занимаюсь — войти» → ник": "On another device, open the site → \"I already study — log in\" → username",
 "ник": "username",
-"почта": "email"
+"почта": "email",
+"Аватар": "Avatar",
+"Аккаунт и весь прогресс удалятся навсегда — вернуть нельзя.": "The account and all progress will be deleted forever — this can't be undone.",
+"Аксессуары": "Accessories",
+"Аксессуары для аватара": "Avatar accessories",
+"Аксессуары покупаются за доллары один раз и надеваются на любого зверька. Нажми ещё раз — снимешь.": "Accessories are bought with dollars once and fit any animal. Tap again to take one off.",
+"Бабочка": "Bow tie",
+"Бейсболка USA": "USA cap",
+"Вернуть букву": "Back to the letter",
+"Вернуть прерванную серию": "Restore a broken streak",
+"Возврат серии": "Streak restored",
+"Енот": "Raccoon",
+"Зверёк": "Animal",
+"Золотая корона": "Golden crown",
+"Или выбери из коллекции": "Or pick one from the collection",
+"История": "History",
+"Как заработать": "How to earn",
+"Ковбойская шляпа": "Cowboy hat",
+"Корона Свободы": "Liberty crown",
+"Кот": "Cat",
+"Лис": "Fox",
+"Медаль за урок: бронза $2 · серебро $4 · золото $6 · «Идеально» $10": "Lesson medal: bronze $2 · silver $4 · gold $6 · \"Perfect\" $10",
+"Медведь": "Bear",
+"На счету": "Balance",
+"на счету": "balance",
+"На что потратить": "What to spend on",
+"Надето": "Wearing",
+"Надеть": "Wear",
+"Наушники": "Headphones",
+"Не получилось открыть фото. Попробуй другое (JPG или PNG).": "Couldn't open the photo. Try another one (JPG or PNG).",
+"Обложка обновлена": "Cover updated",
+"Обложка профиля": "Profile cover",
+"Обложка": "Cover",
+"Орёл": "Eagle",
+"Панда": "Panda",
+"Повторение или тренировка темы": "Review or topic practice",
+"Подсказка в задании": "A hint in a task",
+"Пока пусто. Пройди урок — и здесь появятся первые доллары.": "Empty for now. Complete a lesson — and your first dollars will appear here.",
+"Своё фото": "My photo",
+"Сменить аватар": "Change avatar",
+"Сова": "Owl",
+"Тёмные очки": "Sunglasses",
+"Удаление ещё не включено в базе — попроси Claude запустить SQL.": "Deleting isn't enabled in the database yet — ask Claude to run the SQL.",
+"Удалить": "Delete",
+"Удалить ученика": "Delete student",
+"Урок (повторный — $2)": "Lesson (repeated — $2)",
+"Утёнок": "Duckling",
+"Фон": "Background",
+"Фото обрежется в круг и уменьшится. Его увидишь ты и твой репетитор.": "The photo will be cropped to a circle and resized. You and your tutor will see it.",
+"Фото поставлено": "Photo set",
+"Шапочка выпускника": "Graduation cap",
+"до +$10": "up to +$10",
+"долларов · подробнее": "dollars · details",
+"Загрузить своё фото": "Upload my photo",
+"Загрузить фото": "Upload a photo",
+"Новая каждый день": "A new one every day",
+"Открыть магазин аватара": "Open the avatar shop",
+"бронза": "bronze",
+"серебро": "silver",
+"золото": "gold",
+"идеально": "perfect"
 },
 "pat": [
 [
@@ -1518,6 +1578,50 @@ window.UI_EN = {
 [
 "{0}: {1} мин",
 "{0}: {1} min"
+],
+[
+"Аксессуар «{0}»",
+"Accessory \"{0}\""
+],
+[
+"Достижение (осталось получить: {0})",
+"Achievement ({0} left to earn)"
+],
+[
+"Достижение «{0}»",
+"Achievement \"{0}\""
+],
+[
+"Итоговая {0}",
+"Final test {0}"
+],
+[
+"Куплено: {0}",
+"Bought: {0}"
+],
+[
+"Тема «{0}»",
+"Topic \"{0}\""
+],
+[
+"Тест модуля «{0}»",
+"Module test \"{0}\""
+],
+[
+"Удалить ученика «{0}»? Аккаунт и весь прогресс удалятся навсегда.",
+"Delete student \"{0}\"? The account and all progress will be deleted forever."
+],
+[
+"Урок «{0}» · {1}",
+"Lesson \"{0}\" · {1}"
+],
+[
+"Ученик «{0}» удалён",
+"Student \"{0}\" deleted"
+],
+[
+"от ${0}",
+"from ${0}"
 ]
 ]
 };

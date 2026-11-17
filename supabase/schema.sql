@@ -39,3 +39,22 @@ create policy "admins: self" on public.admins for select using (auth.uid() = use
 drop policy if exists "admin: read all" on public.progress;
 create policy "admin: read all" on public.progress for select using (exists (select 1 from public.admins a where a.user_id = auth.uid()));
 -- Назначить админа:  insert into public.admins (user_id) select user_id from public.progress where lower(nick) = lower('ZXCVBN');
+
+-- (2026-11-17) Ник занят? — без раскрытия почты. Заменяет login_email (тот отдавал почту по нику).
+create or replace function public.nick_taken(p_nick text) returns boolean
+language sql security definer set search_path = public as $$
+  select exists (select 1 from public.progress where lower(nick) = lower(trim(p_nick)));
+$$;
+revoke all on function public.nick_taken(text) from public;
+grant execute on function public.nick_taken(text) to anon, authenticated;
+
+-- (2026-11-17) Админ удаляет ученика: аккаунт + прогресс (каскадом). Себя удалить нельзя.
+create or replace function public.admin_delete_user(p_uid uuid) returns void
+language plpgsql security definer set search_path = public, auth as $$
+begin
+  if not exists (select 1 from public.admins where user_id = auth.uid()) then raise exception 'not admin'; end if;
+  if p_uid = auth.uid() then raise exception 'cannot delete yourself'; end if;
+  delete from auth.users where id = p_uid;
+end $$;
+revoke all on function public.admin_delete_user(uuid) from public;
+grant execute on function public.admin_delete_user(uuid) to authenticated;

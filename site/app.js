@@ -1866,12 +1866,21 @@ function meHeadHTML(edit = false) {
       <div class="row"><button class="btn btn-sm">Сохранить</button><button type="button" class="btn btn-ghost btn-sm" data-me="cancel">Отмена</button></div>
     </form>`;
 }
+// пароль профиля: сначала сверяем с сохранённым на устройстве; если не сошлось, а профиль облачный — спрашиваем облако
+// (сохранённый пароль привязан к нику, и после смены ника в базе он мог устареть) и обновляем сохранённый
+async function checkPass(pass) {
+  if (await hashPass(P.nick, pass) === P.pass) return true;
+  if (!P.cloud || !sb || !pass) return false;
+  const r = await cloudLogin(P.cloud.email || P.nick, pass);
+  if (r.error || r.uid !== P.cloud.uid) return false;
+  P.pass = await hashPass(P.nick, pass); save(); return true;
+}
 async function renameTo(nick, pass) {
   nick = nick.trim();
   if (nick.length < 2) return 'Имя — минимум 2 символа.';
   if (nick === P.nick) return null;
   if (DB.profiles[nick]) return 'Такое имя уже есть на этом устройстве.';
-  if (P.pass && await hashPass(P.nick, pass || '') !== P.pass) return 'Пароль не подходит.';
+  if (P.pass && !(await checkPass(pass || ''))) return 'Пароль не подходит.';
   if (P.cloud) {
     if (!sb) return 'Нет связи с облаком — имя можно сменить, когда появится интернет.';
     if (await nickTaken(nick)) return 'Такое имя уже занято в облаке.';
@@ -1932,7 +1941,7 @@ function bindCloudCard() {
   f.addEventListener('submit', async e => {
     e.preventDefault();
     const err = t => { $('#ccerr', box).textContent = t; };
-    if (P.pass && await hashPass(P.nick, f.old.value) !== P.pass) return err('Текущий пароль не подходит.');
+    if (P.pass && !(await checkPass(f.old.value))) return err('Текущий пароль не подходит.');
     if (f.pass.value.length < 6) return err('Пароль — минимум 6 символов.');
     err('Подключаю…');
     const r = await cloudRegister(P.nick, f.email.value, f.pass.value);

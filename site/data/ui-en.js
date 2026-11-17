@@ -1124,7 +1124,9 @@ window.UI_EN = {
 "Введи ник или почту и пароль.": "Enter your username or email and password.",
 "Неверный ник, почта или пароль.": "Wrong username, email or password.",
 "Укажи почту — пришлём на неё код. Если почту при регистрации не указывал — попроси репетитора сбросить пароль.": "Enter your email — we'll send a code to it. If you didn't give an email when signing up, ask your tutor to reset your password.",
-"Почта (по желанию — чтобы восстановить пароль)": "Email (optional — to reset your password)"
+"Почта (по желанию — чтобы восстановить пароль)": "Email (optional — to reset your password)",
+"Убрать с этого устройства": "Remove from this device",
+"Убрать": "Remove"
 },
 "pat": [
 [
@@ -1682,6 +1684,14 @@ window.UI_EN = {
 [
 "«{0}»: классы снова по порядку",
 "\"{0}\": grades unlock in order again"
+],
+[
+"Убрать «{0}» с этого устройства? Аккаунт в облаке останется — войти можно снова.",
+"Remove \"{0}\" from this device? The cloud account stays — you can log in again."
+],
+[
+"Убрать «{0}» с этого устройства? Его прогресс здесь удалится.",
+"Remove \"{0}\" from this device? Its progress here will be deleted."
 ]
 ]
 };

@@ -1073,7 +1073,7 @@ function renderPicker(names) {
   app.innerHTML = authFrame(`
     <div class="auth-card">
       ${names.length ? `<h2>Кто занимается?</h2>
-      <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<button class="who-btn" data-nick="${esc(n)}">${avaHTML(p)}<span><b>${esc(n)}</b><small>${isGen(p) ? 'своя программа' : p.grade + ' класс'}, ${p.xp} XP${p.cloud ? ', в облаке' : ''}</small></span>${p.cloud ? icon('cloud', 'muted') : p.pass ? icon('lock', 'muted') : ''}</button>`; }).join('')}</div>
+      <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<div class="who-item"><button type="button" class="who-x" data-forget="${esc(n)}" aria-label="Убрать с этого устройства" title="Убрать с этого устройства">${icon('x')}</button><button class="who-btn" data-nick="${esc(n)}">${avaHTML(p)}<span><b>${esc(n)}</b><small>${isGen(p) ? 'своя программа' : p.grade + ' класс'}, ${p.xp} XP${p.cloud ? ', в облаке' : ''}</small></span>${p.cloud ? icon('cloud', 'muted') : p.pass ? icon('lock', 'muted') : ''}</button></div>`; }).join('')}</div>
       <form id="pw" class="hidden" novalidate><label class="field"><span>Пароль</span><input type="password" name="pass" autocomplete="current-password"></label><p class="err" id="err"></p><div class="row-end"><button class="btn">Войти</button></div></form>` : '<h2>Добро пожаловать</h2><p class="muted">Начни с нуля или войди, если уже занимаешься на другом устройстве.</p>'}
       <button class="btn btn-wide" data-act="new">Новый ученик</button>
       ${sb ? `<button class="btn btn-ghost btn-wide" data-act="cloud">${icon('cloud')}Уже занимаюсь — войти</button>
@@ -1096,8 +1096,14 @@ function renderPicker(names) {
       </form>` : ''}
     </div>`);
   let chosen = null;
-  $('.auth-card').addEventListener('click', e => {
+  pruneDeleted();
+  $('.auth-card').addEventListener('click', async e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.forget) {
+      const n = b.dataset.forget, p = DB.profiles[n];
+      if (!await confirmBox(p && p.cloud ? `Убрать «${n}» с этого устройства? Аккаунт в облаке останется — войти можно снова.` : `Убрать «${n}» с этого устройства? Его прогресс здесь удалится.`, 'Убрать', 'Отмена')) return;
+      delete DB.profiles[n]; if (DB.current === n) DB.current = null; save(); app.innerHTML = ''; return renderAuth();
+    }
     if (b.dataset.act === 'new') { onb = freshOnb(); app.innerHTML = ''; return renderAuth(); }
     if (b.dataset.act === 'cloud') { $('#cl').classList.toggle('hidden'); $('#fp').classList.add('hidden'); $('#cl input').focus(); return; }
     if (b.dataset.act === 'forgot') { const fp = $('#fp'); fp.classList.remove('hidden'); $('#cl').classList.add('hidden'); fp.email.value = isEmail($('#cl').nick.value) ? $('#cl').nick.value.trim() : ''; fp.email.focus(); return; }
@@ -1155,6 +1161,16 @@ function renderPicker(names) {
     if (!r.row) return err('Пароль сменён, но прогресса в облаке нет. Создай профиль заново.');
     finishCloudLogin(r, fp.pass.value);
   });
+}
+// профили на устройстве, чьи облачные аккаунты удалены, — убираем с экрана входа
+async function pruneDeleted() {
+  if (!sb) return;
+  let gone = 0;
+  for (const [n, p] of Object.entries(DB.profiles)) {
+    if (!p.cloud || !p.cloud.uid) continue;
+    try { const { data, error } = await sb.rpc('account_exists', { p_uid: p.cloud.uid }); if (!error && data === false) { delete DB.profiles[n]; if (DB.current === n) DB.current = null; gone++; } } catch { /* нет связи — не трогаем */ }
+  }
+  if (gone && !P) { save(); app.innerHTML = ''; renderAuth(); }
 }
 // ссылка из письма «сбросить пароль»: Supabase сам открывает сессию — просим новый пароль
 function askNewPassword() {

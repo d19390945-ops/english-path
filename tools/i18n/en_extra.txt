@@ -222,3 +222,7 @@ E	Введи ник или почту и пароль.	Enter your username or em
 E	Неверный ник, почта или пароль.	Wrong username, email or password.
 E	Укажи почту — пришлём на неё код. Если почту при регистрации не указывал — попроси репетитора сбросить пароль.	Enter your email — we'll send a code to it. If you didn't give an email when signing up, ask your tutor to reset your password.
 E	Почта (по желанию — чтобы восстановить пароль)	Email (optional — to reset your password)
+E	Убрать с этого устройства	Remove from this device
+E	Убрать	Remove
+P	Убрать «{0}» с этого устройства? Аккаунт в облаке останется — войти можно снова.	Remove "{0}" from this device? The cloud account stays — you can log in again.
+P	Убрать «{0}» с этого устройства? Его прогресс здесь удалится.	Remove "{0}" from this device? Its progress here will be deleted.

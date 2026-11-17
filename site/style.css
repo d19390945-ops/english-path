@@ -1135,3 +1135,9 @@ body[data-sec="auth"]::before { display: none; }
 .adm-unlock { margin-top: 26px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: 16px;
   background: linear-gradient(120deg, rgba(245, 184, 61, .16), var(--surface) 70%); border: 1px solid rgba(245, 184, 61, .4); }
 .adm-unlock > div { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }
+
+.who-item { position: relative; }
+.who-item .who-btn { width: 100%; padding-right: 48px; }
+.who-x { position: absolute; z-index: 2; top: 50%; right: 8px; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: 0; display: grid; place-items: center; background: transparent; color: var(--muted); cursor: pointer; }
+.who-x:hover { background: rgba(255, 255, 255, .1); color: var(--ink); }
+.who-x .ic { width: 16px; height: 16px; }

@@ -68,3 +68,11 @@ begin
 end $$;
 revoke all on function public.admin_set_unlock(uuid, boolean) from public;
 grant execute on function public.admin_set_unlock(uuid, boolean) to authenticated;
+
+-- (2026-11-17) Есть ли ещё аккаунт? Экран входа прячет профили устройства, чьи аккаунты удалены.
+create or replace function public.account_exists(p_uid uuid) returns boolean
+language sql security definer set search_path = public, auth as $$
+  select exists (select 1 from auth.users where id = p_uid);
+$$;
+revoke all on function public.account_exists(uuid) from public;
+grant execute on function public.account_exists(uuid) to anon, authenticated;

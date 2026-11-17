@@ -75,6 +75,9 @@ a { color: inherit; }
 .top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 16px; min-width: 0; padding: 14px 32px; background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 600 22px/1 var(--f-head); white-space: nowrap; }
 .logo { width: 36px; height: 36px; flex: none; }
+.brand-t { font: 400 32px/1 'Allura', var(--f-head); letter-spacing: .01em; padding: 4px 6px 0 0; }
+.auth-art h1.script { font-family: 'Allura', var(--f-head); font-weight: 400; line-height: 1.05; letter-spacing: 0; }
+@media (max-width: 420px) { .brand-t { font-size: 26px; } }
 .logo-bg { fill: var(--ink); } .logo-line { stroke: var(--inv); stroke-width: 3; fill: none; stroke-linecap: round; } .logo-dot { fill: var(--inv); }
 .nav { display: flex; gap: 4px; margin: 0 auto; }
 .nav a, .tabbar a { position: relative; display: flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; text-decoration: none; font-weight: 500; font-size: 15px; color: var(--muted); transition: color 150ms, background 150ms; }

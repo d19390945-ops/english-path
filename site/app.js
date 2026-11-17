@@ -681,7 +681,7 @@ function render() {
   app.innerHTML = `
   <div class="shell">
     <header class="top">
-      <a class="brand" href="#/path">${logo()}<span>Английский путь</span></a>
+      <a class="brand" href="#/path">${logo()}<span class="brand-t">Your Road to the USA</span></a>
       <nav class="nav">${navHTML}</nav>
       <div class="top-stats">
         ${cloudChip()}
@@ -705,7 +705,7 @@ const after = {
   me() { bindMe(); },
   admin(arg) { loadAdmin(arg); },
 };
-const logo = () => `<svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="20" class="logo-bg"/><path d="M12 28c0-9 16-7 16-16" class="logo-line"/><circle cx="12" cy="28" r="3.6" class="logo-dot"/><circle cx="28" cy="12" r="3.6" class="logo-dot"/></svg>`;
+const logo = () => `<svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><clipPath id="lc"><circle cx="20" cy="20" r="20"/></clipPath><g clip-path="url(#lc)"><rect width="40" height="40" fill="#B22234"/><path d="M0 3.08h40v3.08H0zM0 9.23h40v3.08H0zM0 15.38h40v3.08H0zM0 21.54h40v3.08H0zM0 27.69h40v3.08H0zM0 33.85h40v3.08H0z" fill="#fff"/><rect width="20" height="21.54" fill="#3C3B6E"/><g fill="#fff"><circle cx="9" cy="6" r=".95"/><circle cx="13.5" cy="6" r=".95"/><circle cx="18" cy="6" r=".95"/><circle cx="6.5" cy="10" r=".95"/><circle cx="11" cy="10" r=".95"/><circle cx="15.5" cy="10" r=".95"/><circle cx="4.5" cy="14" r=".95"/><circle cx="9" cy="14" r=".95"/><circle cx="13.5" cy="14" r=".95"/><circle cx="18" cy="14" r=".95"/><circle cx="6.5" cy="18" r=".95"/><circle cx="11" cy="18" r=".95"/><circle cx="15.5" cy="18" r=".95"/></g></g><circle cx="20" cy="20" r="19.5" fill="none" stroke="#000" stroke-opacity=".18"/></svg>`;
 
 function ring(val, max, size = 60) {
   const r = size / 2 - 5, c = 2 * Math.PI * r, p = Math.min(1, max ? val / max : 0);
@@ -747,7 +747,7 @@ function authFrame(inner) {
   return `${bg ? `<div class="auth-bg" aria-hidden="true"><img src="${photoSrc(bg)}" alt=""></div>` : ''}<div class="auth">
     <div class="auth-art">
       <span class="ghost-num" aria-hidden="true">5–11</span>
-      <h1>Английский<br>путь</h1>
+      <h1 class="script">Your Road<br>to the USA</h1>
       <p>Английский с нуля до B2 — по школьной программе или в своём темпе. Грамматика в схемах, практика по-настоящему.</p>
     </div>
     ${inner}

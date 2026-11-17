@@ -1109,7 +1109,15 @@ window.UI_EN = {
 "Фото целиком": "Whole photo",
 "Какую часть фото показать — двигай ползунок": "Which part of the photo to show — move the slider",
 "Сейчас обложка меняется каждый день. Выбери своё фото — и его можно будет настроить.": "Right now the cover changes every day. Choose your own photo — and you'll be able to adjust it.",
-"Голоса берутся из браузера. Самые живые — в Microsoft Edge (Natural) и Google Chrome (Google); на телефоне — голоса системы. Голоса с пометкой «живой» звучат лучше всего.": "Voices come from your browser. The most natural ones are in Microsoft Edge (Natural) and Google Chrome (Google); on phones — the system voices. Voices marked \"natural\" sound best."
+"Голоса берутся из браузера. Самые живые — в Microsoft Edge (Natural) и Google Chrome (Google); на телефоне — голоса системы. Голоса с пометкой «живой» звучат лучше всего.": "Voices come from your browser. The most natural ones are in Microsoft Edge (Natural) and Google Chrome (Google); on phones — the system voices. Voices marked \"natural\" sound best.",
+"Ava · США · нейроголос (лучший)": "Ava · US · neural voice (best)",
+"Все классы открыты": "All grades unlocked",
+"Классы открываются по порядку": "Grades unlock in order",
+"Ученик может проходить любые уроки и тесты 5–11 класса без контрольных.": "The student can take any lessons and tests for grades 5–11 without final tests.",
+"Открой всё — и ученик сразу сможет пробовать любой класс и уровень.": "Unlock everything — and the student can try any grade and level right away.",
+"Закрыть обратно": "Lock again",
+"Открыть все классы": "Unlock all grades",
+"Эта кнопка ещё не включена в базе — попроси Claude дать SQL.": "This button isn't enabled in the database yet — ask Claude for the SQL."
 },
 "pat": [
 [
@@ -1659,6 +1667,14 @@ window.UI_EN = {
 [
 "{0} · Индия",
 "{0} · India"
+],
+[
+"«{0}»: все классы открыты",
+"\"{0}\": all grades unlocked"
+],
+[
+"«{0}»: классы снова по порядку",
+"\"{0}\": grades unlock in order again"
 ]
 ]
 };

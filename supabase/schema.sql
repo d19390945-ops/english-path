@@ -58,3 +58,13 @@ begin
 end $$;
 revoke all on function public.admin_delete_user(uuid) from public;
 grant execute on function public.admin_delete_user(uuid) to authenticated;
+
+-- (2026-11-17) Админ открывает ученику все классы без контрольных (флаг unlockAll в его прогрессе).
+create or replace function public.admin_set_unlock(p_uid uuid, p_on boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.admins where user_id = auth.uid()) then raise exception 'not admin'; end if;
+  update public.progress set data = jsonb_set(data, '{unlockAll}', to_jsonb(p_on)), updated_at = now() where user_id = p_uid;
+end $$;
+revoke all on function public.admin_set_unlock(uuid, boolean) from public;
+grant execute on function public.admin_set_unlock(uuid, boolean) to authenticated;

@@ -1131,3 +1131,7 @@ body[data-sec="auth"]::before { display: none; }
 .cv-fit .opt { min-height: 40px; padding: 8px 14px; font-size: 14.5px; }
 .cv-y input[type=range] { width: 100%; accent-color: var(--hi); }
 @media (max-width: 600px) { .me-cover { padding-top: 130px; } .cv-prev { height: 150px; } }
+
+.adm-unlock { margin-top: 26px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: 16px;
+  background: linear-gradient(120deg, rgba(245, 184, 61, .16), var(--surface) 70%); border: 1px solid rgba(245, 184, 61, .4); }
+.adm-unlock > div { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }

@@ -332,6 +332,7 @@ function mergeP(a, b) {
   out.xpDev = mo(out.xpDev, b.xpDev, mx);
   out.usdEarn = mo(out.usdEarn, b.usdEarn, mx); out.usdSpent = mo(out.usdSpent, b.usdSpent, mx);
   out.owned = mo(out.owned, b.owned, (x, y) => x || y);
+  if ('unlockAll' in b) out.unlockAll = b.unlockAll; // ставит админ в облаке
   { const seen = new Set(), all = [...(out.usdLog || []), ...(b.usdLog || [])].filter(x => { const k = x.t + '|' + x.n + '|' + x.w; if (seen.has(k)) return false; seen.add(k); return true; }); out.usdLog = all.sort((x, y) => y.t - x.t).slice(0, 80); }
   if (b.settings && b.settings.hideCloud && out.settings) out.settings.hideCloud = true; // «скрыть навсегда» — на всех устройствах
   out.days = mo(out.days, b.days, (x, y) => {
@@ -400,14 +401,35 @@ const voiceLabel = v => {
 function chooseVoice() {
   const pref = P && P.settings.voice, L = TTS.list;
   TTS.voice = L.find(v => v.name === pref) || L[0] || null;
+  TTS.ok = L.length > 0 || AUDIO.size > 0;
 }
 function initVoices() {
+  TTS.ok = AUDIO.size > 0;
   if (!('speechSynthesis' in window)) return;
-  const load = () => { TTS.list = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang)).sort((a, b) => voiceScore(b) - voiceScore(a)); TTS.ok = TTS.list.length > 0; chooseVoice(); };
+  const load = () => { TTS.list = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang)).sort((a, b) => voiceScore(b) - voiceScore(a)); chooseVoice(); };
   load(); speechSynthesis.onvoiceschanged = load;
 }
+// готовые записи нейроголосом (site/audio, ключ — как в tools/audio/phrases.js); нет записи — голос браузера
+const AUDIO = new Set((window.AUDIO_KEYS || '').split(' ').filter(Boolean));
+const audioNorm = s => String(s).replace(/\*\*/g, '').toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const fnv = (s, h) => { for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+const audioKey = s => { const n = audioNorm(s); return n ? fnv(n, 2166136261).toString(36) + fnv(n, 3735928559).toString(36) : ''; };
+let curAudio = null;
 function say(text, slow) {
-  if (!TTS.ok) return;
+  const k = audioKey(text);
+  if (AUDIO.has(k) && !(P && P.settings.voice)) {
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    if (curAudio) curAudio.pause();
+    const a = curAudio = new Audio(`audio/${k}.mp3`);
+    a.playbackRate = slow ? 0.72 : 1; a.preservesPitch = true;
+    a.play().catch(() => sayBrowser(text, slow));
+    return;
+  }
+  sayBrowser(text, slow);
+}
+function sayBrowser(text, slow) {
+  if (!TTS.list.length) return;
+  if (curAudio) curAudio.pause();
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(String(text).replace(/→/g, ', ').replace(/\//g, ', '));
   if (TTS.voice) { u.voice = TTS.voice; u.lang = TTS.voice.lang; } else u.lang = 'en-GB';
@@ -501,12 +523,13 @@ function flyAway(el) {
 /* ================= прогресс ================= */
 const gradePassed = g => !!(P.grades[g] && P.grades[g].passed);
 let isAdmin = false; // админ: всё открыто + страница «Ученики»
-const gradeOpen = g => isAdmin || g === 5 || gradePassed(g) || gradePassed(g - 1);
+const fullAccess = () => isAdmin || !!(P && P.unlockAll); // админ или ученик, которому админ открыл все классы
+const gradeOpen = g => fullAccess() || g === 5 || gradePassed(g) || gradePassed(g - 1);
 const gradeExists = g => !!COURSE[g];
 const unitPassed = u => !!(P.units[u.key] && P.units[u.key].passed) || gradePassed(u.grade);
 const lessonDone = l => !!P.lessons[l.key] || unitPassed(l.unit);
-const unitOpen = u => isAdmin || gradeOpen(u.grade) && (u.index === 0 || unitPassed(u) || unitPassed(COURSE[u.grade].units[u.index - 1]));
-const lessonOpen = l => isAdmin || unitOpen(l.unit) && (l.index === 0 || lessonDone(l) || lessonDone(l.unit.lessons[l.index - 1]));
+const unitOpen = u => fullAccess() || gradeOpen(u.grade) && (u.index === 0 || unitPassed(u) || unitPassed(COURSE[u.grade].units[u.index - 1]));
+const lessonOpen = l => fullAccess() || unitOpen(l.unit) && (l.index === 0 || lessonDone(l) || lessonDone(l.unit.lessons[l.index - 1]));
 const unitLessonsDone = u => u.lessons.filter(lessonDone).length;
 function nextStep() {
   for (const g of GRADES) {
@@ -1491,7 +1514,17 @@ function adminDetail(box, row) {
       ${logs.length ? `<ul class="cd-log">${logs.map(x => `<li><span class="muted">${fmtDate(x.d)}:</span> ${esc(x.l)}</li>`).join('')}</ul>` : '<p class="empty">Пока нет записей.</p>'}`;
   });
   const self = P.cloud && row.user_id === P.cloud.uid;
-  box.innerHTML = html + (self ? '' : `<div class="adm-danger"><button type="button" class="btn btn-sm btn-danger" data-del>${icon('x')}Удалить ученика</button><p class="muted small">Аккаунт и весь прогресс удалятся навсегда — вернуть нельзя.</p></div>`);
+  box.innerHTML = html + (self ? '' : `<div class="adm-unlock"><div><b>${row.data.unlockAll ? 'Все классы открыты' : 'Классы открываются по порядку'}</b><p class="muted small">${row.data.unlockAll ? 'Ученик может проходить любые уроки и тесты 5–11 класса без контрольных.' : 'Открой всё — и ученик сразу сможет пробовать любой класс и уровень.'}</p></div>
+    <button type="button" class="btn btn-sm ${row.data.unlockAll ? 'btn-ghost' : ''}" data-unlock>${icon(row.data.unlockAll ? 'lock' : 'bolt')}${row.data.unlockAll ? 'Закрыть обратно' : 'Открыть все классы'}</button></div>
+    <div class="adm-danger"><button type="button" class="btn btn-sm btn-danger" data-del>${icon('x')}Удалить ученика</button><p class="muted small">Аккаунт и весь прогресс удалятся навсегда — вернуть нельзя.</p></div>`);
+  const un = $('[data-unlock]', box);
+  un && un.addEventListener('click', async () => {
+    const on = !row.data.unlockAll; un.disabled = true;
+    const { error } = await sb.rpc('admin_set_unlock', { p_uid: row.user_id, p_on: on });
+    un.disabled = false;
+    if (error) return toast(/function|schema cache|not find/i.test(error.message) ? 'Эта кнопка ещё не включена в базе — попроси Claude дать SQL.' : cloudErr(error));
+    row.data.unlockAll = on; toast(on ? `«${row.nick}»: все классы открыты` : `«${row.nick}»: классы снова по порядку`); adminDetail(box, row);
+  });
   const del = $('[data-del]', box);
   del && del.addEventListener('click', async () => {
     if (!await confirmBox(`Удалить ученика «${row.nick}»? Аккаунт и весь прогресс удалятся навсегда.`, 'Удалить', 'Отмена')) return;
@@ -1558,7 +1591,7 @@ function viewMe() {
     <h2 class="h-sub">Настройки</h2>
     <div class="settings">
       <label class="field"><span>Голос</span>
-        <span class="row"><select id="voice">${TTS.list.length ? TTS.list.map(v => `<option value="${esc(v.name)}" ${TTS.voice && TTS.voice.name === v.name ? 'selected' : ''}>${esc(voiceLabel(v))}</option>`).join('') : '<option>Английских голосов нет</option>'}</select>
+        <span class="row"><select id="voice">${AUDIO.size ? `<option value="" ${P.settings.voice ? '' : 'selected'}>Ava · США · нейроголос (лучший)</option>` : ''}${TTS.list.length ? TTS.list.map(v => `<option value="${esc(v.name)}" ${P.settings.voice && TTS.voice && TTS.voice.name === v.name ? 'selected' : ''}>${esc(voiceLabel(v))}</option>`).join('') : AUDIO.size ? '' : '<option>Английских голосов нет</option>'}</select>
         <button class="btn btn-ghost btn-sm" data-say="Hello! My name is Anna. I'm from London.">${icon('play')}Проверить</button></span></label>
       <p class="muted small">Голоса берутся из браузера. Самые живые — в Microsoft Edge (Natural) и Google Chrome (Google); на телефоне — голоса системы. Голоса с пометкой «живой» звучат лучше всего.</p>
       <label class="field"><span>Язык интерфейса</span>

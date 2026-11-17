@@ -1,0 +1,5 @@
+project_id = "english-path"
+
+[functions.rapid-responder]
+verify_jwt = false
+

@@ -376,7 +376,7 @@ function updItem(text, ok) {
 /* ---- план ---- */
 const LESSON_MIN = g => g === 5 ? 9 : 14;
 /* школа — по классам, остальные — по ступеням того же курса */
-const STAGES = { 5: 'A1.1', 6: 'A1.2', 7: 'A2.1', 8: 'A2.2', 9: 'B1.1', 10: 'B1.2', 11: 'B2' };
+const STAGES = { 5: 'A1', 6: 'A1+', 7: 'A2', 8: 'A2+', 9: 'B1', 10: 'B1+', 11: 'B2' };
 const isGen = (p = P) => !!p && p.mode === 'general';
 const gTitle = (g, p = P) => isGen(p) ? `Ступень ${STAGES[g]}` : `${g} класс`;
 const gShort = (g, p = P) => isGen(p) ? STAGES[g] : String(g);
@@ -423,14 +423,16 @@ const ACH = [
   { id: 's7', t: 'Неделя', d: '7 дней подряд', i: 'flame', ok: () => P.streak.best >= 7 },
   { id: 'review5', t: 'Память', d: 'Сделай 5 повторений', i: 'repeat', ok: () => P.stats.reviews >= 5 },
   { id: 'w300', t: '300 слов', d: 'Собери 300 слов в копилку', i: 'book', ok: () => Object.keys(P.words).length >= 300 },
-  { id: 'g5', t: 'Первая ступень', d: 'Сдай итоговую за 5 класс (A1.1)', i: 'trophy', ok: () => gradePassed(5) },
-  { id: 'g7', t: 'Уровень A2', d: 'Сдай итоговую за 7 класс (A2.1)', i: 'trophy', ok: () => gradePassed(7) },
-  { id: 'g9', t: 'Уровень B1', d: 'Сдай итоговую за 9 класс (B1.1)', i: 'trophy', ok: () => gradePassed(9) },
+  { id: 'g5', t: 'Первая ступень', d: 'Сдай итоговую за 5 класс (A1)', i: 'trophy', ok: () => gradePassed(5) },
+  { id: 'g7', t: 'Уровень A2', d: 'Сдай итоговую за 7 класс (A2)', i: 'trophy', ok: () => gradePassed(7) },
+  { id: 'g9', t: 'Уровень B1', d: 'Сдай итоговую за 9 класс (B1)', i: 'trophy', ok: () => gradePassed(9) },
   { id: 'g11', t: 'Уровень B2', d: 'Сдай итоговую за 11 класс (B2)', i: 'trophy', ok: () => gradePassed(11) },
   { id: 's30', t: 'Месяц', d: '30 дней подряд', i: 'flame', ok: () => P.streak.best >= 30 },
   { id: 'cards25', t: 'Мечтатель', d: 'Открой 25 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 25 },
   { id: 'cards100', t: 'Коллекционер', d: 'Открой 100 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 100 },
 ];
+const ACH_C = { path: 'red', check: 'green', scheme: 'blue', flame: 'orange', target: 'pink', flag: 'red', bolt: 'gold', star: 'gold', repeat: 'teal', book: 'green', trophy: 'gold', image: 'violet' };
+const lvTag = t => String(t).replace(/([AB][12])(\+?)/g, '<span class="lv lv-$1">$1$2</span>');
 /* ================= фото мечты ================= */
 const PHOTOS = window.PHOTOS || [];
 const QUOTES = window.QUOTES || [];
@@ -693,7 +695,31 @@ function render() {
     <nav class="tabbar">${navHTML}</nav>
   </div>`;
   (after[cur] || (() => {}))(arg);
+  sideArt();
 }
+/* ---- американские фото по бокам (на широких экранах, где контент узкий) ---- */
+const SIDE_PH = ['img001-3', 'img005-2', 'img001-4', 'img003-2', 'img000-3', 'img009-4', 'img008', 'img004-2', 'img006-2', 'img007', 'img006-3', 'img009-3', 'img008-2', 'img006', 'img003-3', 'img002-2'];
+function sideArt() {
+  let box = $('#side-art');
+  if (!box) { box = document.createElement('div'); box.id = 'side-art'; box.setAttribute('aria-hidden', 'true'); document.body.prepend(box); }
+  const ids = SIDE_PH.filter(id => PH.has(id));
+  if (!P || ids.length < 4) { box.innerHTML = ''; box.dataset.key = ''; return layoutSide(); }
+  const key = document.body.dataset.sec + today();
+  if (box.dataset.key !== key) {
+    const h = strHash(key), pick = k => PH.get(ids[(h + k * Math.max(1, Math.floor(ids.length / 4))) % ids.length]);
+    box.innerHTML = ['l', 'r'].map((side, i) => `<div class="side side-${side}">${[0, 1].map(j => `<figure><img src="${photoSrc(pick(i * 2 + j))}" alt="" loading="lazy"></figure>`).join('')}</div>`).join('');
+    box.dataset.key = key;
+  }
+  layoutSide();
+}
+function layoutSide() {
+  const box = $('#side-art'), c = $('#main > .page') || $('#main');
+  const g = box && box.firstChild && c ? Math.floor(c.getBoundingClientRect().left) - 36 : 0;
+  if (!box) return;
+  box.classList.toggle('on', g >= 170);
+  if (g >= 170) box.style.setProperty('--sw', Math.min(g, 340) + 'px');
+}
+addEventListener('resize', () => layoutSide());
 const after = {
   path() {
     drawTracks();
@@ -705,7 +731,8 @@ const after = {
   me() { bindMe(); },
   admin(arg) { loadAdmin(arg); },
 };
-const logo = () => `<svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><clipPath id="lc"><circle cx="20" cy="20" r="20"/></clipPath><g clip-path="url(#lc)"><rect width="40" height="40" fill="#B22234"/><path d="M0 3.08h40v3.08H0zM0 9.23h40v3.08H0zM0 15.38h40v3.08H0zM0 21.54h40v3.08H0zM0 27.69h40v3.08H0zM0 33.85h40v3.08H0z" fill="#fff"/><rect width="20" height="21.54" fill="#3C3B6E"/><g fill="#fff"><circle cx="9" cy="6" r=".95"/><circle cx="13.5" cy="6" r=".95"/><circle cx="18" cy="6" r=".95"/><circle cx="6.5" cy="10" r=".95"/><circle cx="11" cy="10" r=".95"/><circle cx="15.5" cy="10" r=".95"/><circle cx="4.5" cy="14" r=".95"/><circle cx="9" cy="14" r=".95"/><circle cx="13.5" cy="14" r=".95"/><circle cx="18" cy="14" r=".95"/><circle cx="6.5" cy="18" r=".95"/><circle cx="11" cy="18" r=".95"/><circle cx="15.5" cy="18" r=".95"/></g></g><circle cx="20" cy="20" r="19.5" fill="none" stroke="#000" stroke-opacity=".18"/></svg>`;
+const miniFlag = () => logo('logo-mini');
+const logo = (cls = 'logo') => `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true"><clipPath id="lc"><circle cx="20" cy="20" r="20"/></clipPath><g clip-path="url(#lc)"><rect width="40" height="40" fill="#B22234"/><path d="M0 3.08h40v3.08H0zM0 9.23h40v3.08H0zM0 15.38h40v3.08H0zM0 21.54h40v3.08H0zM0 27.69h40v3.08H0zM0 33.85h40v3.08H0z" fill="#fff"/><rect width="20" height="21.54" fill="#3C3B6E"/><g fill="#fff"><circle cx="9" cy="6" r=".95"/><circle cx="13.5" cy="6" r=".95"/><circle cx="18" cy="6" r=".95"/><circle cx="6.5" cy="10" r=".95"/><circle cx="11" cy="10" r=".95"/><circle cx="15.5" cy="10" r=".95"/><circle cx="4.5" cy="14" r=".95"/><circle cx="9" cy="14" r=".95"/><circle cx="13.5" cy="14" r=".95"/><circle cx="18" cy="14" r=".95"/><circle cx="6.5" cy="18" r=".95"/><circle cx="11" cy="18" r=".95"/><circle cx="15.5" cy="18" r=".95"/></g></g><circle cx="20" cy="20" r="19.5" fill="none" stroke="#000" stroke-opacity=".18"/></svg>`;
 
 function ring(val, max, size = 60) {
   const r = size / 2 - 5, c = 2 * Math.PI * r, p = Math.min(1, max ? val / max : 0);
@@ -931,14 +958,14 @@ function viewPath(arg) {
   const G = COURSE[g], open = gradeOpen(g), gp = gradeProgress(g);
   const plaques = ALL_GRADES.map(n => {
     const o = gradeOpen(n), pass = gradePassed(n);
-    return `<a class="grade ${n === g ? 'on' : ''} ${o ? '' : 'locked'} ${pass ? 'passed' : ''}" href="#/path/${n}" aria-label="${gTitle(n)}"><b>${gShort(n)}</b>${pass ? icon('check') : o ? `<span>${Math.round(gradeProgress(n) * 100)}%</span>` : icon('lock')}</a>`;
+    return `<a class="grade lv-${LEVEL_OF(n)} ${n === g ? 'on' : ''} ${o ? '' : 'locked'} ${pass ? 'passed' : ''}" href="#/path/${n}" aria-label="${gTitle(n)}"><b>${gShort(n)}</b>${pass ? icon('check') : o ? `<span>${Math.round(gradeProgress(n) * 100)}%</span>` : icon('lock')}</a>`;
   }).join('');
   const pd = SHOW_PHOTO_OF_DAY ? photoOfDay() : null, pq = pd && quoteFor(pd);
   return `
   <section class="hero ${pd ? 'hero-ph' : ''}">
     <span class="ghost-num" aria-hidden="true">${isGen() ? STAGES[g] : pad2(g)}</span>
     <div class="hero-t">
-      <p class="hero-lvl">${isGen() ? 'Уровень ' + LEVEL_OF(g) : G.level}</p>
+      <p class="hero-lvl">${lvTag(isGen() ? 'Уровень ' + LEVEL_OF(g) : G.level)}</p>
       <h1>${gTitle(g)}</h1>
       <div class="hero-bar"><i style="transform:scaleX(${gp})"></i></div>
       <p class="muted">${gradePassed(g) ? `Сдан на ${P.grades[g].best}%` : `${Math.round(gp * 100)}% пройдено, ${G.units.length} модулей, ${G.units.reduce((a, u) => a + u.lessons.length, 0)} уроков`}</p>
@@ -1068,8 +1095,8 @@ function viewGrammar(arg) {
     <label class="search">${icon('search')}<input id="gq" placeholder="Найти тему: Present Perfect, пассив, артикли…" autocomplete="off"></label>
     ${by.map(([lv, list]) => `
       <section class="lvl-group" data-lvl="${lv}">
-        <h2 class="lvl-h"><span>${lv}</span>${LEVELS[lv]}</h2>
-        <div class="topic-grid">${list.map(x => `<a class="topic-card" href="#/grammar/${x.id}" data-q="${esc((x.t + ' ' + x.id + ' ' + x.b.map(b => b.t || '').join(' ')).toLowerCase())}">
+        <h2 class="lvl-h"><span class="lv lv-${lv}">${lv}</span>${LEVELS[lv]}</h2>
+        <div class="topic-grid lv-${lv}">${list.map(x => `<a class="topic-card" href="#/grammar/${x.id}" data-q="${esc((x.t + ' ' + x.id + ' ' + x.b.map(b => b.t || '').join(' ')).toLowerCase())}">
           <b>${esc(x.t)}</b><span>${x.gaps.length + x.forms.length} заданий${P.topics[x.id] ? `, лучший результат ${P.topics[x.id]}%` : ''}</span></a>`).join('')}</div>
       </section>`).join('')}
   </div>`;
@@ -1199,10 +1226,10 @@ async function loadAdmin(arg) {
   const list = ADM.map(studentSummary);
   box.innerHTML = list.length ? `
     <div class="stat-row">
-      <div class="stat"><b>${list.length}</b><span>учеников</span></div>
-      <div class="stat"><b>${list.filter(s => (Date.now() - new Date(s.last)) < 7 * 86400000).length}</b><span>активны за неделю</span></div>
-      <div class="stat"><b>${list.reduce((a, s) => a + s.lessons, 0)}</b><span>уроков всего</span></div>
-      <div class="stat"><b>${Math.round(list.reduce((a, s) => a + s.week, 0) / 60)}</b><span>часов за неделю</span></div>
+      <div class="stat c-blue"><i class="stat-ic">${icon('users')}</i><b>${list.length}</b><span>учеников</span></div>
+      <div class="stat c-orange"><i class="stat-ic">${icon('flame')}</i><b>${list.filter(s => (Date.now() - new Date(s.last)) < 7 * 86400000).length}</b><span>активны за неделю</span></div>
+      <div class="stat c-red"><i class="stat-ic">${miniFlag()}</i><b>${list.reduce((a, s) => a + s.lessons, 0)}</b><span>уроков всего</span></div>
+      <div class="stat c-green"><i class="stat-ic">${icon('clock')}</i><b>${Math.round(list.reduce((a, s) => a + s.week, 0) / 60)}</b><span>часов за неделю</span></div>
     </div>
     <div class="adm-table">${list.map(s => `
       <a class="adm-row" href="#/admin/${encodeURIComponent(s.nick)}">
@@ -1229,10 +1256,10 @@ function adminDetail(box, row) {
       <div class="me-head"><span class="ava big">${esc(P.nick[0].toUpperCase())}</span><div class="me-name"><h2 class="page-h">${esc(P.nick)}</h2>
         <p class="muted">${isGen() ? 'Своя программа' : P.grade + ' класс'}${P.purpose ? ', ' + esc(PURPOSES[P.purpose] || '') : ''} · цель: ${esc(goalName())}, ${P.goal.minutes} мин/день · с ${new Date(P.created).toLocaleDateString('ru-RU')}</p></div></div>
       <div class="stat-row">
-        <div class="stat"><b>${Object.keys(P.lessons).length}</b><span>уроков</span></div>
-        <div class="stat"><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
-        <div class="stat"><b>${P.streak.best}</b><span>лучшая серия</span></div>
-        <div class="stat"><b>${Object.keys(P.words).length}</b><span>слов</span></div>
+        <div class="stat c-red"><i class="stat-ic">${miniFlag()}</i><b>${Object.keys(P.lessons).length}</b><span>уроков</span></div>
+        <div class="stat c-blue"><i class="stat-ic">${icon('clock')}</i><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
+        <div class="stat c-orange"><i class="stat-ic">${icon('flame')}</i><b>${P.streak.best}</b><span>лучшая серия</span></div>
+        <div class="stat c-green"><i class="stat-ic">${icon('book')}</i><b>${Object.keys(P.words).length}</b><span>слов</span></div>
       </div>
       <h3 class="h-sub">Последние 14 дней</h3>
       <div class="adm-chart">${days.map(x => `<div class="adm-bar ${x.m >= P.goal.minutes ? 'ok' : ''}" title="${fmtDate(x.d)}: ${x.m} мин"><i style="height:${Math.max(2, x.m / max * 100)}%"></i><span>${dayToDate(x.d).getDate()}</span></div>`).join('')}</div>
@@ -1254,10 +1281,10 @@ function viewReview() {
     <h1 class="page-h">Повторение</h1>
     <p class="lead">Слова возвращаются через 1, 2, 4, 7, 15 и 30 дней. Грамматика, где была ошибка, — завтра и ещё раз через 3 дня.</p>
     <div class="stat-row">
-      <div class="stat"><b>${due.length}</b><span>слов ждут</span></div>
-      <div class="stat"><b>${di.length}</b><span>правил ждут</span></div>
-      <div class="stat"><b>${known}</b><span>слов в копилке</span></div>
-      <div class="stat"><b>${Object.values(P.words).filter(w => w.s >= 4).length}</b><span>выучено прочно</span></div>
+      <div class="stat c-green"><i class="stat-ic">${icon('book')}</i><b>${due.length}</b><span>слов ждут</span></div>
+      <div class="stat c-violet"><i class="stat-ic">${icon('scheme')}</i><b>${di.length}</b><span>правил ждут</span></div>
+      <div class="stat c-gold"><i class="stat-ic">${icon('star')}</i><b>${known}</b><span>слов в копилке</span></div>
+      <div class="stat c-blue"><i class="stat-ic">${icon('check')}</i><b>${Object.values(P.words).filter(w => w.s >= 4).length}</b><span>выучено прочно</span></div>
     </div>
     ${known ? `<div><button class="btn" data-act="review">${icon('repeat')}${due.length + di.length ? 'Повторить сейчас' : 'Потренировать слабые слова'}</button></div>` : '<p class="empty">Пройди первый урок — слова появятся здесь.</p>'}
     ${weak.length ? `<h2 class="h-sub">Слабые места</h2><ul class="wordlist">${weak.map(w => `<li><button class="say" data-say="${esc(w.en)}" aria-label="Послушать">${icon('sound')}</button><b>${esc(w.en)}</b><span>${esc(w.ru)}</span><i class="lvl" style="--l:${P.words[w.en].s}"></i></li>`).join('')}</ul>` : ''}
@@ -1274,10 +1301,10 @@ function viewMe() {
     </section>`; })()}
     ${sb && P.cloud && P.settings.hideCloud ? '' : `<section class="cloud-card" id="cloudcard">${cloudCardHTML()}</section>`}
     <div class="stat-row">
-      <div class="stat"><b>${P.xp}</b><span>опыт</span></div>
-      <div class="stat"><b>${P.streak.best}</b><span>лучшая серия</span></div>
-      <div class="stat"><b>${lessons}</b><span>${plural(lessons, 'урок', 'урока', 'уроков')}</span></div>
-      <div class="stat"><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
+      <div class="stat c-gold"><i class="stat-ic">${icon('bolt')}</i><b>${P.xp}</b><span>опыт</span></div>
+      <div class="stat c-orange"><i class="stat-ic">${icon('flame')}</i><b>${P.streak.best}</b><span>лучшая серия</span></div>
+      <div class="stat c-red"><i class="stat-ic">${miniFlag()}</i><b>${lessons}</b><span>${plural(lessons, 'урок', 'урока', 'уроков')}</span></div>
+      <div class="stat c-blue"><i class="stat-ic">${icon('clock')}</i><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
     </div>
     ${!SHOW_DREAM ? '' : (() => { cardsInit(); const f = P.favs.map(id => PH.get(id)).filter(Boolean); return `
     <h2 class="h-sub">Моя доска мечты <span class="muted">${f.length ? f.length + ' фото' : ''}</span></h2>
@@ -1294,8 +1321,8 @@ function viewMe() {
       <div class="seg">${DEADLINES.map(([w, t]) => `<button class="opt ${P.goal.weeks === w ? 'sel' : ''}" data-weeks="${w}">${t}</button>`).join('')}</div>
       <p class="plan-box ${pi.ok ? '' : 'warn'}">${esc(planText(pi))}</p>
     </div>
-    <h2 class="h-sub">Достижения <span class="muted">${Object.keys(P.ach).length} из ${ACH.length}</span></h2>
-    <div class="ach-grid">${ACH.map(a => `<div class="ach ${P.ach[a.id] ? 'got' : ''}">${icon(a.i)}<b>${a.t}</b><span>${a.d}</span></div>`).join('')}</div>
+    <h2 class="h-sub">Достижения <span class="muted">${Object.keys(P.ach).filter(k => SHOW_DREAM || !k.startsWith('cards')).length} из ${ACH.filter(a => SHOW_DREAM || !a.id.startsWith('cards')).length}</span></h2>
+    <div class="ach-grid">${ACH.filter(a => SHOW_DREAM || !a.id.startsWith('cards')).map(a => `<div class="ach c-${ACH_C[a.i] || 'gold'} ${P.ach[a.id] ? 'got' : ''}"><i class="ach-ic">${icon(a.i)}</i><b>${a.t}</b><span>${a.d}</span>${P.ach[a.id] ? '' : `<em class="ach-lock">${icon('lock')}</em>`}</div>`).join('')}</div>
     <h2 class="h-sub">Настройки</h2>
     <div class="settings">
       <label class="field"><span>Голос</span>
@@ -1867,9 +1894,9 @@ function finish() {
       <h2 class="res-t">${title}</h2>
       <p class="muted">${esc(sub)}</p>
       <div class="stat-row">
-        <div class="stat"><b>${acc}%</b><span>точность</span></div>
-        <div class="stat"><b>${Math.max(1, Math.round(min))}</b><span>мин</span></div>
-        <div class="stat"><b>+${xp}</b><span>опыт</span></div>
+        <div class="stat c-pink"><i class="stat-ic">${icon('target')}</i><b>${acc}%</b><span>точность</span></div>
+        <div class="stat c-blue"><i class="stat-ic">${icon('clock')}</i><b>${Math.max(1, Math.round(min))}</b><span>мин</span></div>
+        <div class="stat c-gold"><i class="stat-ic">${icon('bolt')}</i><b>+${xp}</b><span>опыт</span></div>
       </div>
       ${nc && !SHOW_RESULT_CARD && SHOW_DREAM ? `<button class="card-note" data-p="dream">${icon('image')}<span>+${newCards.length} ${plural(newCards.length, 'карточка', 'карточки', 'карточек')} в «Мечтах» · ${P.cards.length} из ${PHOTOS.length}</span></button>` : ''}
       ${fresh.length ? `<h3 class="h-sub">${fresh.length > 1 ? 'Новые достижения' : 'Новое достижение'}</h3><div class="new-ach">${fresh.map(a => `<div class="ach got">${icon(a.i)}<b>${a.t}</b><span>${a.d}</span></div>`).join('')}</div>` : ''}

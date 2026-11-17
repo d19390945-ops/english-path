@@ -215,3 +215,10 @@ E	Открыть все классы	Unlock all grades
 E	Эта кнопка ещё не включена в базе — попроси Claude дать SQL.	This button isn't enabled in the database yet — ask Claude for the SQL.
 P	«{0}»: все классы открыты	"{0}": all grades unlocked
 P	«{0}»: классы снова по порядку	"{0}": grades unlock in order again
+E	Придумай ник и пароль — с ними войдёшь с телефона, планшета или другого компьютера. Почту можно добавить, чтобы восстановить пароль, если забудешь.	Choose a username and a password — you'll use them to log in from a phone, tablet or another computer. You can add an email to reset your password if you forget it.
+E	Почта (по желанию)	Email (optional)
+E	Ник или почта	Username or email
+E	Введи ник или почту и пароль.	Enter your username or email and password.
+E	Неверный ник, почта или пароль.	Wrong username, email or password.
+E	Укажи почту — пришлём на неё код. Если почту при регистрации не указывал — попроси репетитора сбросить пароль.	Enter your email — we'll send a code to it. If you didn't give an email when signing up, ask your tutor to reset your password.
+E	Почта (по желанию — чтобы восстановить пароль)	Email (optional — to reset your password)

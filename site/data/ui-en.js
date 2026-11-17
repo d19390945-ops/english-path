@@ -1117,7 +1117,14 @@ window.UI_EN = {
 "Открой всё — и ученик сразу сможет пробовать любой класс и уровень.": "Unlock everything — and the student can try any grade and level right away.",
 "Закрыть обратно": "Lock again",
 "Открыть все классы": "Unlock all grades",
-"Эта кнопка ещё не включена в базе — попроси Claude дать SQL.": "This button isn't enabled in the database yet — ask Claude for the SQL."
+"Эта кнопка ещё не включена в базе — попроси Claude дать SQL.": "This button isn't enabled in the database yet — ask Claude for the SQL.",
+"Придумай ник и пароль — с ними войдёшь с телефона, планшета или другого компьютера. Почту можно добавить, чтобы восстановить пароль, если забудешь.": "Choose a username and a password — you'll use them to log in from a phone, tablet or another computer. You can add an email to reset your password if you forget it.",
+"Почта (по желанию)": "Email (optional)",
+"Ник или почта": "Username or email",
+"Введи ник или почту и пароль.": "Enter your username or email and password.",
+"Неверный ник, почта или пароль.": "Wrong username, email or password.",
+"Укажи почту — пришлём на неё код. Если почту при регистрации не указывал — попроси репетитора сбросить пароль.": "Enter your email — we'll send a code to it. If you didn't give an email when signing up, ask your tutor to reset your password.",
+"Почта (по желанию — чтобы восстановить пароль)": "Email (optional — to reset your password)"
 },
 "pat": [
 [

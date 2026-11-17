@@ -220,7 +220,7 @@ async function makeEmail(nick) {
 async function cloudUid() { try { const { data } = await sb.auth.getSession(); return data.session ? data.session.user.id : null; } catch { return null; } }
 const cloudErr = e => {
   const m = String((e && e.message) || e || '');
-  if (/invalid login/i.test(m)) return 'Неверная почта или пароль.';
+  if (/invalid login/i.test(m)) return 'Неверный ник, почта или пароль.';
   if (/already registered|already been registered|already exists/i.test(m)) return 'Эта почта уже зарегистрирована. Войди или восстанови пароль.';
   if (/rate limit|too many|security purposes/i.test(m)) return 'Слишком много попыток. Подожди минуту и попробуй снова.';
   if (/invalid.*email|email.*invalid|unable to validate email/i.test(m)) return 'Почта указана неверно.';
@@ -232,15 +232,17 @@ const cloudErr = e => {
 // новый облачный аккаунт для профиля P
 async function cloudRegister(nick, email, pass) {
   if (!sb) return 'Облако недоступно (нет интернета).';
-  if (!isEmail(email)) return 'Почта указана неверно.';
+  email = (email || '').trim().toLowerCase();
+  if (email && !isEmail(email)) return 'Почта указана неверно.';
   if (pass.length < 6) return 'Пароль — минимум 6 символов.';
   if (await nickTaken(nick)) return 'Такой ник уже занят в облаке. Выбери другой.';
-  email = email.trim().toLowerCase();
+  const real = !!email;
+  if (!real) email = await makeEmail(nick); // без почты — служебный адрес, вход по нику
   const { data, error } = await sb.auth.signUp({ email, password: pass });
   if (error) return cloudErr(error);
   if (data.user && !data.user.identities?.length) return 'Эта почта уже зарегистрирована. Войди или восстанови пароль.';
   if (!data.session) return 'Облако требует подтверждение почты — сообщи репетитору.';
-  P.cloud = { uid: data.user.id, email }; cloudReady = true;
+  P.cloud = { uid: data.user.id, email: real ? email : undefined }; cloudReady = true;
   const r = await pushNow();
   return r;
 }
@@ -986,9 +988,9 @@ function heroArt() {
 }
 const stepNick = () => `
   <h2>Как тебя зовут?</h2>
-  <p class="muted">${sb ? 'Придумай ник и пароль и укажи почту. Входить будешь по почте — с телефона, планшета или другого компьютера. Забудешь пароль — пришлём код на почту.' : 'Придумай ник. Пароль — по желанию.'}</p>
+  <p class="muted">${sb ? 'Придумай ник и пароль — с ними войдёшь с телефона, планшета или другого компьютера. Почту можно добавить, чтобы восстановить пароль, если забудешь.' : 'Придумай ник. Пароль — по желанию.'}</p>
   <label class="field"><span>Ник</span><input name="nick" maxlength="20" autocomplete="nickname" value="${esc(onb.nick)}" placeholder="например, sasha_8a" required></label>
-  ${sb ? `<label class="field"><span>Почта</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email" value="${esc(onb.email || '')}" placeholder="name@mail.ru" required></label>` : ''}
+  ${sb ? `<label class="field"><span>Почта (по желанию)</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email" value="${esc(onb.email || '')}" placeholder="name@mail.ru"></label>` : ''}
   <label class="field"><span>${sb ? 'Пароль (минимум 6 символов)' : 'Пароль (необязательно)'}</span><input name="pass" type="password" maxlength="40" value="${esc(onb.pass)}" autocomplete="new-password"></label>
   <p class="err" id="err"></p>
   <div class="row-end">${Object.keys(DB.profiles).length || sb ? '<button type="button" class="btn btn-ghost" data-act="cancel">Назад</button>' : ''}<button class="btn">Дальше</button></div>`;
@@ -1044,7 +1046,7 @@ function bindOnb() {
       if (nick.length < 2) return showErr('Ник — минимум 2 символа.');
       if (DB.profiles[nick]) return showErr('Такой ник уже есть на этом устройстве.');
       if (sb) {
-        if (!isEmail(f.email.value)) return showErr('Укажи почту: на неё придёт код, если забудешь пароль.');
+        if (f.email.value.trim() && !isEmail(f.email.value)) return showErr('Почта указана неверно.');
         if (f.pass.value.length < 6) return showErr('Пароль — минимум 6 символов: с ним ты войдёшь с других устройств.');
         showErr('Проверяю ник…');
         if (await nickTaken(nick)) return showErr('Такой ник уже занят. Если это ты — вернись назад и нажми «Войти».');
@@ -1058,7 +1060,7 @@ function bindOnb() {
       const prof = onbProfile(onb.pass ? await hashPass(onb.nick, onb.pass) : null);
       DB.profiles[prof.nick] = prof; DB.current = prof.nick; P = prof; save();
       const pass = onb.pass, email = onb.email; onb = null; chooseVoice();
-      if (sb && pass && email) { const err = await cloudRegister(prof.nick, email, pass); if (err) toast(err + ' Пока прогресс сохраняется на этом устройстве; подключить облако можно в профиле.'); }
+      if (sb && pass) { const err = await cloudRegister(prof.nick, email, pass); if (err) toast(err + ' Пока прогресс сохраняется на этом устройстве; подключить облако можно в профиле.'); }
       render.scrolled = false; app.innerHTML = ''; location.hash = '#/path'; render(); return;
     }
     onb.step++; renderAuth();
@@ -1076,14 +1078,14 @@ function renderPicker(names) {
       <button class="btn btn-wide" data-act="new">Новый ученик</button>
       ${sb ? `<button class="btn btn-ghost btn-wide" data-act="cloud">${icon('cloud')}Уже занимаюсь — войти</button>
       <form id="cl" class="hidden" novalidate>
-        <label class="field"><span>Почта</span><input name="nick" type="email" maxlength="80" autocomplete="email" inputmode="email"></label>
+        <label class="field"><span>Ник или почта</span><input name="nick" maxlength="80" autocomplete="username"></label>
         <label class="field"><span>Пароль</span><input name="pass" type="password" autocomplete="current-password"></label>
         <p class="err" id="err2"></p>
         <div class="row-between"><button type="button" class="link-btn" data-act="forgot">Забыли пароль?</button><button class="btn">Войти</button></div>
       </form>
       <form id="fp" class="hidden" novalidate>
         <h3 class="h-sub">Новый пароль</h3>
-        <p class="muted small" id="fp-t">Укажи почту — пришлём на неё код.</p>
+        <p class="muted small" id="fp-t">Укажи почту — пришлём на неё код. Если почту при регистрации не указывал — попроси репетитора сбросить пароль.</p>
         <label class="field"><span>Почта</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email"></label>
         <div class="fp-2 hidden">
           <label class="field"><span>Код из письма</span><input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
@@ -1127,7 +1129,7 @@ function renderPicker(names) {
   cl && cl.addEventListener('submit', async e => {
     e.preventDefault();
     const nick = cl.nick.value.trim(), pass = cl.pass.value, err = t => { $('#err2').textContent = t; };
-    if (!nick || !pass) return err('Введи почту и пароль.');
+    if (!nick || !pass) return err('Введи ник или почту и пароль.');
     err('Вхожу…');
     const r = await cloudLogin(nick, pass);
     if (r.error) return err(r.error);
@@ -1886,7 +1888,7 @@ function cloudCardHTML() {
   return `<div class="cc-row">${icon('cloud')}<div><b>Облако не подключено</b>
     <p class="muted small">Сейчас прогресс живёт только в этом браузере. Подключи облако — и занимайся с телефона, планшета и других компьютеров.</p></div></div>
     <form class="cc-form" id="ccform" novalidate>
-      <label class="field"><span>Почта (для входа и восстановления пароля)</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email"></label>
+      <label class="field"><span>Почта (по желанию — чтобы восстановить пароль)</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email"></label>
       <label class="field"><span>Придумай пароль для входа (минимум 6 символов)</span><input name="pass" type="password" autocomplete="new-password"></label>
       ${P.pass ? '<label class="field"><span>Текущий пароль профиля</span><input name="old" type="password" autocomplete="current-password"></label>' : ''}
       <p class="err" id="ccerr"></p>

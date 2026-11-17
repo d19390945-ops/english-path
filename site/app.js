@@ -194,6 +194,7 @@ let sb = null;
 try { if (window.supabase && !/[?&]nocloud\b/.test(location.search)) sb = window.supabase.createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'englishpath.auth' } }); } catch { sb = null; }
 const DEVICE = (() => { try { let d = localStorage.getItem('englishpath.device'); if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem('englishpath.device', d); } return d; } catch { return 'dev'; } })();
 let cloudState = 'off'; // off | sync | ok | err
+let cloudNeedLogin = false; // облачная сессия на устройстве закончилась — нужен пароль
 function setCloud(s) {
   cloudState = s;
   const el = $('#cloudchip'); if (el) el.outerHTML = cloudChip();
@@ -206,6 +207,12 @@ function cloudChip() {
 async function loginEmail(nick) {
   try { const { data } = await sb.rpc('login_email', { p_nick: nick.trim() }); return data || null; } catch { return null; }
 }
+// занят ли ник (без раскрытия почты); пока функции nick_taken нет в базе — старый способ
+async function nickTaken(nick) {
+  try { const { data, error } = await sb.rpc('nick_taken', { p_nick: nick.trim() }); if (!error) return !!data; } catch { /* */ }
+  return !!(await loginEmail(nick));
+}
+const isEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e).trim());
 async function makeEmail(nick) {
   const h = await hashPass('cloud', nick.trim().toLowerCase());
   return `u${h.slice(0, 32)}@englishpath.app`;
@@ -213,31 +220,59 @@ async function makeEmail(nick) {
 async function cloudUid() { try { const { data } = await sb.auth.getSession(); return data.session ? data.session.user.id : null; } catch { return null; } }
 const cloudErr = e => {
   const m = String((e && e.message) || e || '');
-  if (/invalid login/i.test(m)) return 'Неверный ник или пароль.';
+  if (/invalid login/i.test(m)) return 'Неверная почта или пароль.';
+  if (/already registered|already been registered|already exists/i.test(m)) return 'Эта почта уже зарегистрирована. Войди или восстанови пароль.';
+  if (/rate limit|too many|security purposes/i.test(m)) return 'Слишком много попыток. Подожди минуту и попробуй снова.';
+  if (/invalid.*email|email.*invalid|unable to validate email/i.test(m)) return 'Почта указана неверно.';
+  if (/token has expired|invalid.*token|otp/i.test(m)) return 'Код неверный или устарел. Запроси новый.';
   if (/at least 6|password should/i.test(m)) return 'Пароль — минимум 6 символов.';
   if (/fetch|network|failed/i.test(m)) return 'Нет связи с облаком. Проверь интернет.';
   return 'Облако ответило ошибкой: ' + m;
 };
 // новый облачный аккаунт для профиля P
-async function cloudRegister(nick, pass) {
+async function cloudRegister(nick, email, pass) {
   if (!sb) return 'Облако недоступно (нет интернета).';
+  if (!isEmail(email)) return 'Почта указана неверно.';
   if (pass.length < 6) return 'Пароль — минимум 6 символов.';
-  if (await loginEmail(nick)) return 'Такой ник уже занят в облаке. Выбери другой.';
-  const { data, error } = await sb.auth.signUp({ email: await makeEmail(nick), password: pass });
+  if (await nickTaken(nick)) return 'Такой ник уже занят в облаке. Выбери другой.';
+  email = email.trim().toLowerCase();
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
   if (error) return cloudErr(error);
+  if (data.user && !data.user.identities?.length) return 'Эта почта уже зарегистрирована. Войди или восстанови пароль.';
   if (!data.session) return 'Облако требует подтверждение почты — сообщи репетитору.';
-  P.cloud = { uid: data.user.id }; cloudReady = true;
+  P.cloud = { uid: data.user.id, email }; cloudReady = true;
   const r = await pushNow();
   return r;
 }
-async function cloudLogin(nick, pass) {
+// вход: по почте; старые аккаунты (почта-заглушка) — ещё и по нику
+async function cloudLogin(login, pass) {
   if (!sb) return { error: 'Облако недоступно (нет интернета).' };
-  const email = (await loginEmail(nick)) || await makeEmail(nick);
+  login = login.trim();
+  const email = isEmail(login) ? login.toLowerCase() : ((await loginEmail(login)) || await makeEmail(login));
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
   if (error) return { error: cloudErr(error) };
-  const { data: row, error: e2 } = await sb.from('progress').select('*').eq('user_id', data.user.id).maybeSingle();
+  return loadRow(data.user, email);
+}
+async function loadRow(user, email) {
+  const { data: row, error } = await sb.from('progress').select('*').eq('user_id', user.id).maybeSingle();
+  if (error) return { error: cloudErr(error) };
+  return { uid: user.id, email: email || user.email, row };
+}
+// забыли пароль: код на почту → код + новый пароль
+async function sendReset(email) {
+  if (!sb) return 'Облако недоступно (нет интернета).';
+  if (!isEmail(email)) return 'Почта указана неверно.';
+  const { error } = await sb.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: location.origin + location.pathname });
+  return error ? cloudErr(error) : null;
+}
+async function resetWithCode(email, code, pass) {
+  if (pass.length < 6) return { error: 'Пароль — минимум 6 символов.' };
+  email = email.trim().toLowerCase();
+  const { data, error } = await sb.auth.verifyOtp({ email, token: code.replace(/\s/g, ''), type: 'recovery' });
+  if (error) return { error: cloudErr(error) };
+  const { error: e2 } = await sb.auth.updateUser({ password: pass });
   if (e2) return { error: cloudErr(e2) };
-  return { uid: data.user.id, row };
+  return loadRow(data.user, email);
 }
 let pushT = null, cloudReady = false; // отправляем только после того, как скачали свежую версию
 function cloudPush() {
@@ -912,12 +947,15 @@ function authFrame(inner) {
   const bg = PHOTOS.length ? PHOTOS[strHash('auth' + Math.floor(Date.now() / 3600000)) % PHOTOS.length] : null;
   return `${bg ? `<div class="auth-bg" aria-hidden="true"><img src="${photoSrc(bg)}" alt=""></div>` : ''}<div class="auth">
     <div class="auth-art">
-      <div class="lang-sw" role="group" aria-label="Язык интерфейса"><button type="button" data-lang="ru" class="${EN ? '' : 'on'}">RU</button><button type="button" data-lang="en" class="${EN ? 'on' : ''}">EN</button></div>
-      <span class="ghost-num" aria-hidden="true">5–11</span>
+      <span class="auth-grades" aria-hidden="true">5–11</span>
+      <span class="auth-levels"><b class="lv lv-A1">A1</b><i></i><b class="lv lv-C1">C1</b></span>
       <h1 class="script">Your Road<br>to the USA</h1>
       <p>Английский с нуля до B2 — по школьной программе или в своём темпе. Грамматика в схемах, практика по-настоящему.</p>
     </div>
-    ${inner}
+    <div class="auth-side">
+      <div class="lang-sw" role="group" aria-label="Язык интерфейса"><button type="button" data-lang="ru" class="${EN ? '' : 'on'}">RU</button><button type="button" data-lang="en" class="${EN ? 'on' : ''}">EN</button></div>
+      ${inner}
+    </div>
   </div>`;
 }
 function renderAuth() {
@@ -939,8 +977,9 @@ function heroArt() {
 }
 const stepNick = () => `
   <h2>Как тебя зовут?</h2>
-  <p class="muted">${sb ? 'Придумай ник и пароль. С ними ты войдёшь с телефона, планшета или другого компьютера — прогресс подтянется сам.' : 'Придумай ник. Пароль — по желанию.'}</p>
-  <label class="field"><span>Ник</span><input name="nick" maxlength="20" autocomplete="username" value="${esc(onb.nick)}" placeholder="например, sasha_8a" required></label>
+  <p class="muted">${sb ? 'Придумай ник и пароль и укажи почту. Входить будешь по почте — с телефона, планшета или другого компьютера. Забудешь пароль — пришлём код на почту.' : 'Придумай ник. Пароль — по желанию.'}</p>
+  <label class="field"><span>Ник</span><input name="nick" maxlength="20" autocomplete="nickname" value="${esc(onb.nick)}" placeholder="например, sasha_8a" required></label>
+  ${sb ? `<label class="field"><span>Почта</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email" value="${esc(onb.email || '')}" placeholder="name@mail.ru" required></label>` : ''}
   <label class="field"><span>${sb ? 'Пароль (минимум 6 символов)' : 'Пароль (необязательно)'}</span><input name="pass" type="password" maxlength="40" value="${esc(onb.pass)}" autocomplete="new-password"></label>
   <p class="err" id="err"></p>
   <div class="row-end">${Object.keys(DB.profiles).length || sb ? '<button type="button" class="btn btn-ghost" data-act="cancel">Назад</button>' : ''}<button class="btn">Дальше</button></div>`;
@@ -996,10 +1035,12 @@ function bindOnb() {
       if (nick.length < 2) return showErr('Ник — минимум 2 символа.');
       if (DB.profiles[nick]) return showErr('Такой ник уже есть на этом устройстве.');
       if (sb) {
+        if (!isEmail(f.email.value)) return showErr('Укажи почту: на неё придёт код, если забудешь пароль.');
         if (f.pass.value.length < 6) return showErr('Пароль — минимум 6 символов: с ним ты войдёшь с других устройств.');
         showErr('Проверяю ник…');
-        if (await loginEmail(nick)) return showErr('Такой ник уже занят. Если это ты — вернись назад и нажми «Войти».');
+        if (await nickTaken(nick)) return showErr('Такой ник уже занят. Если это ты — вернись назад и нажми «Войти».');
         showErr('');
+        onb.email = f.email.value.trim();
       }
       onb.nick = nick; onb.pass = f.pass.value;
     }
@@ -1007,8 +1048,8 @@ function bindOnb() {
       const btn = f.querySelector('button:not([type])'); btn.disabled = true; btn.textContent = 'Создаю…';
       const prof = onbProfile(onb.pass ? await hashPass(onb.nick, onb.pass) : null);
       DB.profiles[prof.nick] = prof; DB.current = prof.nick; P = prof; save();
-      const pass = onb.pass; onb = null; chooseVoice();
-      if (sb && pass) { const err = await cloudRegister(prof.nick, pass); if (err) toast(err + ' Пока прогресс сохраняется на этом устройстве; подключить облако можно в профиле.'); }
+      const pass = onb.pass, email = onb.email; onb = null; chooseVoice();
+      if (sb && pass && email) { const err = await cloudRegister(prof.nick, email, pass); if (err) toast(err + ' Пока прогресс сохраняется на этом устройстве; подключить облако можно в профиле.'); }
       render.scrolled = false; app.innerHTML = ''; location.hash = '#/path'; render(); return;
     }
     onb.step++; renderAuth();
@@ -1024,22 +1065,37 @@ function renderPicker(names) {
       <div class="who">${names.map(n => { const p = DB.profiles[n]; return `<button class="who-btn" data-nick="${esc(n)}"><span class="ava">${esc(n[0].toUpperCase())}</span><span><b>${esc(n)}</b><small>${isGen(p) ? 'своя программа' : p.grade + ' класс'}, ${p.xp} XP${p.cloud ? ', в облаке' : ''}</small></span>${p.cloud ? icon('cloud', 'muted') : p.pass ? icon('lock', 'muted') : ''}</button>`; }).join('')}</div>
       <form id="pw" class="hidden" novalidate><label class="field"><span>Пароль</span><input type="password" name="pass" autocomplete="current-password"></label><p class="err" id="err"></p><div class="row-end"><button class="btn">Войти</button></div></form>` : '<h2>Добро пожаловать</h2><p class="muted">Начни с нуля или войди, если уже занимаешься на другом устройстве.</p>'}
       <button class="btn btn-wide" data-act="new">Новый ученик</button>
-      ${sb ? `<button class="btn btn-ghost btn-wide" data-act="cloud">${icon('cloud')}Уже занимаюсь — войти по нику</button>
+      ${sb ? `<button class="btn btn-ghost btn-wide" data-act="cloud">${icon('cloud')}Уже занимаюсь — войти</button>
       <form id="cl" class="hidden" novalidate>
-        <label class="field"><span>Ник</span><input name="nick" maxlength="20" autocomplete="username"></label>
+        <label class="field"><span>Почта</span><input name="nick" type="email" maxlength="80" autocomplete="email" inputmode="email"></label>
         <label class="field"><span>Пароль</span><input name="pass" type="password" autocomplete="current-password"></label>
-        <p class="err" id="err2"></p><div class="row-end"><button class="btn">Войти</button></div>
+        <p class="err" id="err2"></p>
+        <div class="row-between"><button type="button" class="link-btn" data-act="forgot">Забыли пароль?</button><button class="btn">Войти</button></div>
+      </form>
+      <form id="fp" class="hidden" novalidate>
+        <h3 class="h-sub">Новый пароль</h3>
+        <p class="muted small" id="fp-t">Укажи почту — пришлём на неё код.</p>
+        <label class="field"><span>Почта</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email"></label>
+        <div class="fp-2 hidden">
+          <label class="field"><span>Код из письма</span><input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
+          <label class="field"><span>Новый пароль (минимум 6 символов)</span><input name="pass" type="password" autocomplete="new-password"></label>
+        </div>
+        <p class="err" id="err3"></p>
+        <div class="row-end"><button class="btn" id="fp-go">Прислать код</button></div>
       </form>` : ''}
     </div>`);
   let chosen = null;
   $('.auth-card').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.act === 'new') { onb = freshOnb(); app.innerHTML = ''; return renderAuth(); }
-    if (b.dataset.act === 'cloud') { $('#cl').classList.toggle('hidden'); $('#cl input').focus(); return; }
+    if (b.dataset.act === 'cloud') { $('#cl').classList.toggle('hidden'); $('#fp').classList.add('hidden'); $('#cl input').focus(); return; }
+    if (b.dataset.act === 'forgot') { const fp = $('#fp'); fp.classList.remove('hidden'); $('#cl').classList.add('hidden'); fp.email.value = isEmail($('#cl').nick.value) ? $('#cl').nick.value.trim() : ''; fp.email.focus(); return; }
     if (b.dataset.nick) {
       chosen = b.dataset.nick;
       $$('.who-btn').forEach(x => x.classList.toggle('sel', x === b));
-      if (!DB.profiles[chosen].pass) return login(chosen);
+      const pc = DB.profiles[chosen];
+      if (!pc.pass) return login(chosen);
+      if (pc.cloud && sb) { cloudUid().then(uid => { if (uid && uid === pc.cloud.uid) login(chosen); }); }
       $('#pw').classList.remove('hidden'); $('#pw input').value = ''; $('#pw input').focus();
     }
   });
@@ -1051,7 +1107,7 @@ function renderPicker(names) {
     if (p.cloud && sb) {
       showErr('Вхожу…');
       if (okLocal && await cloudUid() === p.cloud.uid) return login(chosen);
-      const r = await cloudLogin(chosen, pass);
+      const r = await cloudLogin(p.cloud.email || chosen, pass);
       if (r.error) { if (okLocal) { toast('Облако недоступно — открываю данные с этого устройства.'); return login(chosen); } return showErr(r.error); }
       return finishCloudLogin(r, pass);
     }
@@ -1062,20 +1118,58 @@ function renderPicker(names) {
   cl && cl.addEventListener('submit', async e => {
     e.preventDefault();
     const nick = cl.nick.value.trim(), pass = cl.pass.value, err = t => { $('#err2').textContent = t; };
-    if (!nick || !pass) return err('Введи ник и пароль.');
+    if (!nick || !pass) return err('Введи почту и пароль.');
     err('Вхожу…');
     const r = await cloudLogin(nick, pass);
     if (r.error) return err(r.error);
     if (!r.row) return err('Аккаунт найден, но прогресса в облаке нет. Создай профиль заново.');
     finishCloudLogin(r, pass);
   });
+  const fp = $('#fp');
+  fp && fp.addEventListener('submit', async e => {
+    e.preventDefault();
+    const err = t => { $('#err3').textContent = t; }, go = $('#fp-go'), step2 = !$('.fp-2', fp).classList.contains('hidden');
+    go.disabled = true;
+    if (!step2) {
+      err('Отправляю…');
+      const r = await sendReset(fp.email.value); go.disabled = false;
+      if (r) return err(r);
+      err(''); $('.fp-2', fp).classList.remove('hidden'); go.textContent = 'Сменить пароль';
+      $('#fp-t').textContent = 'Код отправлен. Проверь почту (и папку «Спам») и введи код и новый пароль.';
+      return fp.code.focus();
+    }
+    err('Проверяю код…');
+    const r = await resetWithCode(fp.email.value, fp.code.value, fp.pass.value); go.disabled = false;
+    if (r.error) return err(r.error);
+    if (!r.row) return err('Пароль сменён, но прогресса в облаке нет. Создай профиль заново.');
+    finishCloudLogin(r, fp.pass.value);
+  });
 }
+// ссылка из письма «сбросить пароль»: Supabase сам открывает сессию — просим новый пароль
+function askNewPassword() {
+  const d = document.createElement('div'); d.className = 'modal';
+  d.innerHTML = `<form class="modal-card" novalidate><h3 class="h-sub">Новый пароль</h3><label class="field"><span>Новый пароль (минимум 6 символов)</span><input name="pass" type="password" autocomplete="new-password"></label><p class="err"></p><div class="row-end"><button class="btn">Сохранить</button></div></form>`;
+  document.body.appendChild(d); requestAnimationFrame(() => d.classList.add('in'));
+  const f = $('form', d); f.pass.focus();
+  f.addEventListener('submit', async e => {
+    e.preventDefault(); const er = $('.err', d);
+    if (f.pass.value.length < 6) { er.textContent = 'Пароль — минимум 6 символов.'; return; }
+    er.textContent = 'Сохраняю…';
+    const { data, error } = await sb.auth.updateUser({ password: f.pass.value });
+    if (error) { er.textContent = cloudErr(error); return; }
+    const r = await loadRow(data.user);
+    d.remove(); history.replaceState(null, '', location.pathname + location.search);
+    if (r.error || !r.row) { toast(r.error || 'Пароль сменён. Прогресса в облаке нет — создай профиль.'); return; }
+    finishCloudLogin(r, f.pass.value);
+  });
+}
+if (sb) sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') setTimeout(askNewPassword, 300); });
 async function finishCloudLogin(r, pass) {
   const nick = r.row.nick;
   const local = Object.values(DB.profiles).find(p => p.cloud && p.cloud.uid === r.uid) || DB.profiles[nick];
   let prof = local ? mergeP(migrate(local), r.row.data) : migrate(r.row.data);
   if (local && local.nick !== nick) delete DB.profiles[local.nick];
-  prof.nick = nick; prof.cloud = { uid: r.uid }; prof.pass = await hashPass(nick, pass);
+  prof.nick = nick; prof.cloud = { uid: r.uid, email: r.email || (local && local.cloud && local.cloud.email) }; prof.pass = await hashPass(nick, pass);
   DB.profiles[nick] = prof; login(nick);
   toast('Прогресс загружен из облака');
 }
@@ -1503,8 +1597,7 @@ async function renameTo(nick, pass) {
   if (P.pass && await hashPass(P.nick, pass || '') !== P.pass) return 'Пароль не подходит.';
   if (P.cloud) {
     if (!sb) return 'Нет связи с облаком — имя можно сменить, когда появится интернет.';
-    const owner = await loginEmail(nick);
-    if (owner) return 'Такое имя уже занято в облаке.';
+    if (await nickTaken(nick)) return 'Такое имя уже занято в облаке.';
   }
   const oldNick = P.nick, oldPass = P.pass;
   if (P.pass) P.pass = await hashPass(nick, pass); // пароль привязан к имени — пересчитываем
@@ -1520,13 +1613,21 @@ async function renameTo(nick, pass) {
 /* ---- облако в профиле ---- */
 function cloudCardHTML() {
   if (!sb) return `<div class="cc-row">${icon('cloud')}<div><b>Облако недоступно</b><p class="muted small">Нет связи с сервером — прогресс сохраняется только на этом устройстве.</p></div></div>`;
+  if (P.cloud && cloudState === 'err' && cloudNeedLogin) return `<div class="cc-row">${icon('cloud')}<div><b>Войди снова, чтобы сохранять в облако</b>
+    <p class="muted small">Прогресс пока сохраняется на этом устройстве. Введи пароль — и всё отправится в облако.</p></div></div>
+    <form class="cc-form" id="ccre" novalidate>
+      <label class="field"><span>Почта</span><input name="email" type="email" autocomplete="email" value="${esc(P.cloud.email || '')}"></label>
+      <label class="field"><span>Пароль</span><input name="pass" type="password" autocomplete="current-password"></label>
+      <p class="err" id="ccerr"></p><div class="row"><button class="btn btn-sm">Войти</button></div>
+    </form>`;
   if (P.cloud) return `<div class="cc-row">${icon('cloud')}<div><b>Прогресс сохраняется в облаке</b>
-    <p class="muted small">На другом устройстве открой сайт → «Уже занимаюсь — войти по нику» → ник <b>${esc(P.nick)}</b> и твой пароль. Уроки, календарь и заметки подтянутся сами.</p></div>
+    <p class="muted small">На другом устройстве открой сайт → «Уже занимаюсь — войти» → ${P.cloud.email ? `почта <b>${esc(P.cloud.email)}</b>` : `ник <b>${esc(P.nick)}</b>`} и твой пароль. Уроки, календарь и заметки подтянутся сами.</p></div>
     <button class="btn btn-ghost btn-sm" data-cc="sync">${icon('repeat')}Обновить</button>
     <button class="btn btn-ghost btn-sm cc-x" data-cc="hide" title="Скрыть и больше не показывать" aria-label="Скрыть и больше не показывать">${icon('x')}</button></div>`;
   return `<div class="cc-row">${icon('cloud')}<div><b>Облако не подключено</b>
     <p class="muted small">Сейчас прогресс живёт только в этом браузере. Подключи облако — и занимайся с телефона, планшета и других компьютеров.</p></div></div>
     <form class="cc-form" id="ccform" novalidate>
+      <label class="field"><span>Почта (для входа и восстановления пароля)</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email"></label>
       <label class="field"><span>Придумай пароль для входа (минимум 6 символов)</span><input name="pass" type="password" autocomplete="new-password"></label>
       ${P.pass ? '<label class="field"><span>Текущий пароль профиля</span><input name="old" type="password" autocomplete="current-password"></label>' : ''}
       <p class="err" id="ccerr"></p>
@@ -1540,6 +1641,16 @@ function bindCloudCard() {
     if (b.dataset.cc === 'hide') { P.settings.hideCloud = true; save(); box.remove(); return; }
     b.disabled = true; await cloudPull(); b.disabled = false; toast(cloudState === 'ok' ? 'Всё синхронизировано' : 'Нет связи с облаком');
   });
+  const re = $('#ccre', box);
+  re && re.addEventListener('submit', async e => {
+    e.preventDefault(); const er = t => { $('#ccerr', box).textContent = t; };
+    er('Вхожу…');
+    const r = await cloudLogin(re.email.value || P.nick, re.pass.value);
+    if (r.error) return er(r.error);
+    if (r.uid !== P.cloud.uid) return er('Это другой аккаунт.');
+    P.cloud.email = r.email; cloudNeedLogin = false; P.pass = await hashPass(P.nick, re.pass.value); save();
+    await cloudPull(); checkAdmin(); toast('Готово, облако снова на связи'); render();
+  });
   const f = $('#ccform', box); if (!f) return;
   f.addEventListener('submit', async e => {
     e.preventDefault();
@@ -1547,7 +1658,7 @@ function bindCloudCard() {
     if (P.pass && await hashPass(P.nick, f.old.value) !== P.pass) return err('Текущий пароль не подходит.');
     if (f.pass.value.length < 6) return err('Пароль — минимум 6 символов.');
     err('Подключаю…');
-    const r = await cloudRegister(P.nick, f.pass.value);
+    const r = await cloudRegister(P.nick, f.email.value, f.pass.value);
     if (r && !P.cloud) return err(r); // аккаунт не создан
     P.pass = await hashPass(P.nick, f.pass.value); save();
     toast(r ? 'Облако подключено. Первое сохранение не прошло — повторю автоматически.' : 'Облако подключено'); render();
@@ -2119,10 +2230,13 @@ function confetti() {
 /* ================= старт ================= */
 initVoices();
 if (/[?&]debug\b/.test(location.search)) window.__ep = { cur: () => cur, S: () => S, P: () => P, norm, buildLesson, buildUnitTest, buildFinal, buildPractice, COURSE, GR, LESSONS };
-if (DB.current && DB.profiles[DB.current] && !DB.profiles[DB.current].pass) P = migrate(DB.profiles[DB.current]);
-// облачный профиль: если сессия на этом устройстве ещё жива — входим без пароля
-if (!P && sb && DB.current && DB.profiles[DB.current] && DB.profiles[DB.current].cloud) {
-  cloudUid().then(uid => { if (uid && uid === DB.profiles[DB.current].cloud.uid && !P) login(DB.current); });
+// кто вошёл на этом устройстве, остаётся внутри, пока сам не нажмёт «Выйти» — без пароля
+if (DB.current && DB.profiles[DB.current]) {
+  P = migrate(DB.profiles[DB.current]);
+  if (P.cloud && sb) cloudUid().then(uid => {
+    if (uid && uid === P.cloud.uid) return cloudPull().then(checkAdmin);
+    cloudNeedLogin = true; setCloud('err'); if (!S && routeParts()[0] === 'me') render();
+  });
 }
 render();
 })();

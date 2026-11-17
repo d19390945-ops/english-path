@@ -1038,3 +1038,32 @@ body:not(:has(#main)) #side-art { display: none; }
 .lang-sw button.on { background: var(--hi); color: var(--inv); }
 html[lang="en"] .exm .ru { display: none; }
 html[lang="en"] .exm .say { grid-row: auto; }
+
+/* ---------- экран входа: 5–11 → A1–C1 → название; карточка на флаге (2026-11-17) ---------- */
+.auth-art h1 { margin: 6px 0 20px; }
+.auth-grades { display: block; font: 700 clamp(110px, 14vw, 190px)/.82 var(--f-head); color: transparent; -webkit-text-stroke: 1.5px rgba(255, 255, 255, .55); letter-spacing: -.02em; }
+.auth-levels { display: flex; align-items: center; gap: 12px; margin: 22px 0 6px; }
+.auth-levels .lv { font-size: 18px; padding: 6px 14px; }
+.auth-levels i { flex: 0 1 190px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--lv-A1), var(--lv-A2), var(--lv-B1), var(--lv-B2), #FF6FA8); }
+.lv-C1 { --lc: #FF6FA8; }
+.auth-side { position: relative; }
+.auth-side .lang-sw { position: absolute; top: 18px; right: 18px; z-index: 3; margin: 0; background: rgba(0, 0, 0, .45); }
+.auth-side .auth-card { padding-top: 34px; }
+.auth-side .auth-card > h2:first-child { padding-right: 96px; }
+.auth-side .auth-card > .dots { padding-right: 110px; }
+/* флаг США фоном карточки: полосы + синий угол со звёздами + затемнение для читаемости */
+.auth-card { overflow: hidden; border: 1px solid rgba(255, 255, 255, .16);
+  background: repeating-linear-gradient(180deg, #B22234 0 24px, #F4F1EA 24px 48px); }
+.auth-card::before { content: ''; position: absolute; left: 0; top: 0; width: 42%; height: 168px; z-index: 0;
+  background: radial-gradient(circle, #fff 1.6px, transparent 2px) 0 0 / 22px 19px, radial-gradient(circle, #fff 1.6px, transparent 2px) 11px 9.5px / 22px 19px, #3C3B6E; }
+.auth-card::after { content: ''; position: absolute; inset: 0; z-index: 0; background: linear-gradient(160deg, rgba(10, 8, 14, .72), rgba(10, 8, 14, .84)); }
+.auth-card > * { position: relative; z-index: 1; }
+.auth-card .who-btn, .auth-card .opt, .auth-card .plan-box, .auth-card input, .auth-card select { background: rgba(14, 12, 18, .72); backdrop-filter: blur(6px); }
+.auth-card .opt.sel { background: color-mix(in srgb, var(--hi) 30%, rgba(14, 12, 18, .8)); }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.link-btn { border: 0; background: none; padding: 6px 0; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; font-size: 14.5px; }
+.link-btn:hover { color: var(--ink); }
+.fp-2 { display: flex; flex-direction: column; gap: 12px; }
+#fp { display: flex; flex-direction: column; gap: 12px; }
+#fp.hidden { display: none; }
+@media (max-width: 600px) { .auth-grades { font-size: 96px; } .auth-levels { margin: 22px 0 4px; } }

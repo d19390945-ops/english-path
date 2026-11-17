@@ -88,3 +88,34 @@ E	Образование — самое мощное оружие, которы�
 E	ий	
 E	ая	
 E	а	
+E	Введи почту и пароль.	Enter your email and password.
+E	Войди снова, чтобы сохранять в облако	Log in again to keep saving to the cloud
+E	Готово, облако снова на связи	Done, the cloud is back online
+E	Забыли пароль?	Forgot your password?
+E	Код из письма	Code from the email
+E	Код неверный или устарел. Запроси новый.	The code is wrong or has expired. Request a new one.
+E	Код отправлен. Проверь почту (и папку «Спам») и введи код и новый пароль.	Code sent. Check your inbox (and the Spam folder), then enter the code and a new password.
+E	Неверная почта или пароль.	Wrong email or password.
+E	Новый пароль	New password
+E	Новый пароль (минимум 6 символов)	New password (at least 6 characters)
+E	Отправляю…	Sending…
+E	Пароль сменён, но прогресса в облаке нет. Создай профиль заново.	Password changed, but there's no progress in the cloud. Create the profile again.
+E	Пароль сменён. Прогресса в облаке нет — создай профиль.	Password changed. There's no progress in the cloud — create a profile.
+E	Почта	Email
+E	Почта (для входа и восстановления пароля)	Email (to log in and reset your password)
+E	Почта указана неверно.	The email address looks wrong.
+E	Придумай ник и пароль и укажи почту. Входить будешь по почте — с телефона, планшета или другого компьютера. Забудешь пароль — пришлём код на почту.	Choose a username and a password and enter your email. You'll log in with your email — from a phone, tablet or another computer. Forget your password — we'll email you a code.
+E	Прислать код	Send the code
+E	Проверяю код…	Checking the code…
+E	Прогресс пока сохраняется на этом устройстве. Введи пароль — и всё отправится в облако.	For now progress is saved on this device. Enter your password — and everything will go to the cloud.
+E	Слишком много попыток. Подожди минуту и попробуй снова.	Too many attempts. Wait a minute and try again.
+E	Сменить пароль	Change password
+E	Укажи почту — пришлём на неё код.	Enter your email — we'll send a code to it.
+E	Укажи почту: на неё придёт код, если забудешь пароль.	Enter your email: we'll send a code there if you forget your password.
+E	Эта почта уже зарегистрирована. Войди или восстанови пароль.	This email is already registered. Log in or reset your password.
+E	Это другой аккаунт.	This is a different account.
+E	Уже занимаюсь — войти	I already study — log in
+E	На другом устройстве открой сайт → «Уже занимаюсь — войти» → почта	On another device, open the site → "I already study — log in" → email
+E	На другом устройстве открой сайт → «Уже занимаюсь — войти» → ник	On another device, open the site → "I already study — log in" → username
+E	ник	username
+E	почта	email

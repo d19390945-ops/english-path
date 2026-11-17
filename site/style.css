@@ -1143,3 +1143,8 @@ body[data-sec="auth"]::before { display: none; }
 .who-x .ic { width: 16px; height: 16px; }
 
 .mail-card { padding: 18px 20px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+
+/* Telegram Mini App: в полноэкранном режиме сверху кнопки Telegram — отступаем */
+html.in-tg body { padding-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); }
+html.in-tg .top { top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); }
+html.in-tg .player, html.in-tg .modal, html.in-tg .lb { top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); }

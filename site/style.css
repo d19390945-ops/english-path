@@ -1119,3 +1119,15 @@ body[data-sec="auth"]::before { display: none; }
 .adm-danger { margin-top: 26px; padding-top: 18px; border-top: 1px dashed var(--line-strong); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .btn-danger { background: transparent; color: #FF8A7A; border-color: rgba(255, 138, 122, .55); }
 .btn-danger:hover:not(:disabled) { background: rgba(255, 138, 122, .12); border-color: #FF8A7A; }
+
+/* ---------- обложка: выше, положение, «целиком» ---------- */
+.me-cover { padding-top: 190px; }
+.me-cover-blur { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(22px) brightness(.45); }
+.me-cover.own-cover .me-cover-img { filter: brightness(.7); }
+.cv-prev { position: relative; height: 190px; border-radius: 18px; overflow: hidden; background: var(--soft); }
+.cv-prev img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cv-prev .cv-blur { inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); filter: blur(22px) brightness(.5); }
+.cv-fit { display: flex; gap: 6px; }
+.cv-fit .opt { min-height: 40px; padding: 8px 14px; font-size: 14.5px; }
+.cv-y input[type=range] { width: 100%; accent-color: var(--hi); }
+@media (max-width: 600px) { .me-cover { padding-top: 130px; } .cv-prev { height: 150px; } }

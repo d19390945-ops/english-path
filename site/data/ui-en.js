@@ -1104,7 +1104,12 @@ window.UI_EN = {
 "бронза": "bronze",
 "серебро": "silver",
 "золото": "gold",
-"идеально": "perfect"
+"идеально": "perfect",
+"Заполнить": "Fill",
+"Фото целиком": "Whole photo",
+"Какую часть фото показать — двигай ползунок": "Which part of the photo to show — move the slider",
+"Сейчас обложка меняется каждый день. Выбери своё фото — и его можно будет настроить.": "Right now the cover changes every day. Choose your own photo — and you'll be able to adjust it.",
+"Голоса берутся из браузера. Самые живые — в Microsoft Edge (Natural) и Google Chrome (Google); на телефоне — голоса системы. Голоса с пометкой «живой» звучат лучше всего.": "Voices come from your browser. The most natural ones are in Microsoft Edge (Natural) and Google Chrome (Google); on phones — the system voices. Voices marked \"natural\" sound best."
 },
 "pat": [
 [
@@ -1622,6 +1627,38 @@ window.UI_EN = {
 [
 "от ${0}",
 "from ${0}"
+],
+[
+"{0} · США · живой",
+"{0} · US · natural"
+],
+[
+"{0} · Британия · живой",
+"{0} · UK · natural"
+],
+[
+"{0} · США",
+"{0} · US"
+],
+[
+"{0} · Британия",
+"{0} · UK"
+],
+[
+"{0} · Австралия",
+"{0} · Australia"
+],
+[
+"{0} · Канада",
+"{0} · Canada"
+],
+[
+"{0} · Ирландия",
+"{0} · Ireland"
+],
+[
+"{0} · Индия",
+"{0} · India"
 ]
 ]
 };

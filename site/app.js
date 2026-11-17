@@ -389,14 +389,21 @@ function migrate(p) { // профили из первой версии
 
 /* ================= голос и звук ================= */
 const TTS = { ok: false, voice: null, list: [] };
+// «живые» нейросетевые голоса (Edge: Natural/Online, Chrome: Google, Apple: Premium/Enhanced) — выше простых системных
+const voiceScore = v => (/natural|neural|online|premium|enhanced/i.test(v.name) ? 4 : 0) + (/google/i.test(v.name) ? 3 : 0)
+  + (/^en[-_]US/i.test(v.lang) ? 1 : /^en[-_]GB/i.test(v.lang) ? 0.8 : 0) + (v.localService === false ? 0.5 : 0);
+const voiceLabel = v => {
+  const reg = { US: 'США', GB: 'Британия', AU: 'Австралия', CA: 'Канада', IE: 'Ирландия', IN: 'Индия', NZ: 'Новая Зеландия', ZA: 'ЮАР' }[(v.lang.split(/[-_]/)[1] || '').toUpperCase()] || v.lang;
+  const nm = v.name.replace(/^(Microsoft|Google)\s+/i, '').replace(/\s*Online\s*\(Natural\)/i, '').replace(/\s*-\s*English.*$/i, '').replace(/\s*\(.*?\)\s*/g, ' ').trim();
+  return `${nm} · ${reg}${voiceScore(v) >= 3 ? ' · живой' : ''}`;
+};
 function chooseVoice() {
   const pref = P && P.settings.voice, L = TTS.list;
-  TTS.voice = L.find(v => v.name === pref) || L.find(v => /en-GB/i.test(v.lang) && /natural|online|neural/i.test(v.name))
-    || L.find(v => /en-GB/i.test(v.lang)) || L.find(v => /natural|online|neural/i.test(v.name)) || L[0] || null;
+  TTS.voice = L.find(v => v.name === pref) || L[0] || null;
 }
 function initVoices() {
   if (!('speechSynthesis' in window)) return;
-  const load = () => { TTS.list = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang)); TTS.ok = TTS.list.length > 0; chooseVoice(); };
+  const load = () => { TTS.list = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang)).sort((a, b) => voiceScore(b) - voiceScore(a)); TTS.ok = TTS.list.length > 0; chooseVoice(); };
   load(); speechSynthesis.onvoiceschanged = load;
 }
 function say(text, slow) {
@@ -1518,7 +1525,8 @@ function viewMe() {
   <div class="page">
     ${(() => { const cv = coverSrc(); return `
     <section class="me-cover ${cv ? 'has-img' : ''} ${P.cover ? 'own-cover' : ''}">
-      ${cv ? `<img class="me-cover-img" src="${cv}" alt="">` : ''}
+      ${cv && P.cover && P.cover.fit === 'contain' ? `<img class="me-cover-blur" src="${cv}" alt="">` : ''}
+      ${cv ? `<img class="me-cover-img" src="${cv}" alt="" style="${P.cover ? coverStyle() : ''}">` : ''}
       <button type="button" class="cover-btn" data-me-cover>${icon('image')}Обложка</button>
       <div class="me-head" id="mehead">${meHeadHTML()}</div>
     </section>`; })()}
@@ -1550,8 +1558,9 @@ function viewMe() {
     <h2 class="h-sub">Настройки</h2>
     <div class="settings">
       <label class="field"><span>Голос</span>
-        <span class="row"><select id="voice">${TTS.list.length ? TTS.list.map(v => `<option value="${esc(v.name)}" ${TTS.voice && TTS.voice.name === v.name ? 'selected' : ''}>${esc(v.name)} (${v.lang})</option>`).join('') : '<option>Английских голосов нет</option>'}</select>
+        <span class="row"><select id="voice">${TTS.list.length ? TTS.list.map(v => `<option value="${esc(v.name)}" ${TTS.voice && TTS.voice.name === v.name ? 'selected' : ''}>${esc(voiceLabel(v))}</option>`).join('') : '<option>Английских голосов нет</option>'}</select>
         <button class="btn btn-ghost btn-sm" data-say="Hello! My name is Anna. I'm from London.">${icon('play')}Проверить</button></span></label>
+      <p class="muted small">Голоса берутся из браузера. Самые живые — в Microsoft Edge (Natural) и Google Chrome (Google); на телефоне — голоса системы. Голоса с пометкой «живой» звучат лучше всего.</p>
       <label class="field"><span>Язык интерфейса</span>
         <select id="ulang"><option value="ru" ${EN ? '' : 'selected'}>Русский</option><option value="en" ${EN ? 'selected' : ''}>English</option></select></label>
       <label class="switch"><input type="checkbox" id="snd" ${P.settings.sound ? 'checked' : ''}><span>Звуки ответов</span></label>
@@ -1757,20 +1766,37 @@ function coverSrc() {
   const cv = PHOTOS.length ? PHOTOS[strHash('cover' + P.nick + today()) % PHOTOS.length] : null;
   return cv ? photoSrc(cv) : '';
 }
+const coverStyle = () => { const c = P.cover || {}; return `object-position:50% ${c.y ?? 35}%;object-fit:${c.fit === 'contain' ? 'contain' : 'cover'}`; };
 function openCover() {
   const list = COVER_PH();
-  const sh = sheet('Обложка профиля', `
-    <div class="row"><label class="btn btn-sm file-btn">${icon('image')}Загрузить своё фото<input type="file" accept="image/*" data-cv-file></label>
-    <button type="button" class="btn btn-ghost btn-sm" data-cv="auto">${icon('repeat')}Новая каждый день</button></div>
-    <p class="sheet-k">Или выбери из коллекции</p>
-    <div class="cv-grid">${list.map(p => `<button type="button" class="cv-tile ${P.cover && P.cover.id === p.id ? 'sel' : ''}" data-cv="${p.id}"><img src="${photoSrc(p, true)}" alt="" loading="lazy"></button>`).join('')}</div>`, () => { if (!S) render(); });
+  const sh = sheet('Обложка профиля', '', () => { if (!S) render(); });
+  const paint = () => {
+    const c = P.cover, src = coverSrc();
+    sh.body.innerHTML = `
+      ${c ? `<div class="cv-prev ${c.fit === 'contain' ? 'whole' : ''}">${c.fit === 'contain' ? `<img class="cv-blur" src="${src}" alt="">` : ''}<img src="${src}" alt="" style="${coverStyle()}"></div>
+      <div class="seg cv-fit"><button type="button" class="opt ${c.fit !== 'contain' ? 'sel' : ''}" data-fit="cover">Заполнить</button><button type="button" class="opt ${c.fit === 'contain' ? 'sel' : ''}" data-fit="contain">Фото целиком</button></div>
+      ${c.fit !== 'contain' ? `<label class="field cv-y"><span>Какую часть фото показать — двигай ползунок</span><input type="range" min="0" max="100" step="1" value="${c.y ?? 35}" data-y></label>` : ''}` : '<p class="muted small">Сейчас обложка меняется каждый день. Выбери своё фото — и его можно будет настроить.</p>'}
+      <div class="row"><label class="btn btn-sm file-btn">${icon('image')}Загрузить своё фото<input type="file" accept="image/*" data-cv-file></label>
+      ${c ? `<button type="button" class="btn btn-ghost btn-sm" data-cv="auto">${icon('repeat')}Новая каждый день</button>` : ''}</div>
+      <p class="sheet-k">Или выбери из коллекции</p>
+      <div class="cv-grid">${list.map(p => `<button type="button" class="cv-tile ${c && c.id === p.id ? 'sel' : ''}" data-cv="${p.id}"><img src="${photoSrc(p, true)}" alt="" loading="lazy"></button>`).join('')}</div>`;
+  };
+  paint();
   sh.body.addEventListener('click', e => {
+    const f = e.target.closest('[data-fit]');
+    if (f) { P.cover = { ...P.cover, fit: f.dataset.fit }; save(); return paint(); }
     const b = e.target.closest('[data-cv]'); if (!b) return;
-    P.cover = b.dataset.cv === 'auto' ? null : { id: b.dataset.cv }; save(); sh.close();
+    P.cover = b.dataset.cv === 'auto' ? null : { id: b.dataset.cv, y: 50, fit: 'cover' }; save(); paint();
+    $('.sheet', sh.el).scrollTop = 0;
+  });
+  sh.body.addEventListener('input', e => {
+    const r = e.target.closest('[data-y]'); if (!r) return;
+    P.cover = { ...P.cover, y: +r.value }; $('.cv-prev img:last-child', sh.body).style.objectPosition = `50% ${r.value}%`;
   });
   sh.body.addEventListener('change', async e => {
+    if (e.target.closest('[data-y]')) return save();
     const f = e.target.closest('[data-cv-file]'); if (!f || !f.files[0]) return;
-    try { P.cover = { img: await readImage(f.files[0], 1000, 700, false, 0.7) }; save(); toast('Обложка обновлена'); sh.close(); }
+    try { P.cover = { img: await readImage(f.files[0], 1400, 1000, false, 0.72), y: 50, fit: 'cover' }; save(); toast('Обложка обновлена'); paint(); $('.sheet', sh.el).scrollTop = 0; }
     catch { toast('Не получилось открыть фото. Попробуй другое (JPG или PNG).'); }
   });
 }

@@ -191,3 +191,16 @@ P	Удалить ученика «{0}»? Аккаунт и весь прогре
 P	Урок «{0}» · {1}	Lesson "{0}" · {1}
 P	Ученик «{0}» удалён	Student "{0}" deleted
 P	от ${0}	from ${0}
+E	Заполнить	Fill
+E	Фото целиком	Whole photo
+E	Какую часть фото показать — двигай ползунок	Which part of the photo to show — move the slider
+E	Сейчас обложка меняется каждый день. Выбери своё фото — и его можно будет настроить.	Right now the cover changes every day. Choose your own photo — and you'll be able to adjust it.
+E	Голоса берутся из браузера. Самые живые — в Microsoft Edge (Natural) и Google Chrome (Google); на телефоне — голоса системы. Голоса с пометкой «живой» звучат лучше всего.	Voices come from your browser. The most natural ones are in Microsoft Edge (Natural) and Google Chrome (Google); on phones — the system voices. Voices marked "natural" sound best.
+P	{0} · США · живой	{0} · US · natural
+P	{0} · Британия · живой	{0} · UK · natural
+P	{0} · США	{0} · US
+P	{0} · Британия	{0} · UK
+P	{0} · Австралия	{0} · Australia
+P	{0} · Канада	{0} · Canada
+P	{0} · Ирландия	{0} · Ireland
+P	{0} · Индия	{0} · India

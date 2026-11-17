@@ -1141,3 +1141,5 @@ body[data-sec="auth"]::before { display: none; }
 .who-x { position: absolute; z-index: 2; top: 50%; right: 8px; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: 0; display: grid; place-items: center; background: transparent; color: var(--muted); cursor: pointer; }
 .who-x:hover { background: rgba(255, 255, 255, .1); color: var(--ink); }
 .who-x .ic { width: 16px; height: 16px; }
+
+.mail-card { padding: 18px 20px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }

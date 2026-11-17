@@ -76,3 +76,29 @@ language sql security definer set search_path = public, auth as $$
 $$;
 revoke all on function public.account_exists(uuid) from public;
 grant execute on function public.account_exists(uuid) to anon, authenticated;
+
+-- (2026-11-17) Привязать / сменить / отвязать свою почту — сразу, без письма-подтверждения
+-- (встроенная почта Supabase не доставляет письма посторонним). Пустая строка = отвязать (служебный адрес).
+create or replace function public.set_my_email(p_email text) returns text
+language plpgsql security definer set search_path = public, auth as $$
+declare e text;
+begin
+  if auth.uid() is null then raise exception 'not logged in'; end if;
+  e := lower(trim(coalesce(p_email, '')));
+  if e = '' then e := 'u' || replace(auth.uid()::text, '-', '') || '@englishpath.app';
+  elsif e !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]{2,}$' then raise exception 'bad email';
+  elsif exists (select 1 from auth.users where lower(email) = e and id <> auth.uid()) then raise exception 'email taken';
+  end if;
+  update auth.users set email = e, email_confirmed_at = coalesce(email_confirmed_at, now()), updated_at = now() where id = auth.uid();
+  update auth.identities set identity_data = jsonb_set(identity_data, '{email}', to_jsonb(e)), updated_at = now() where user_id = auth.uid() and provider = 'email';
+  return e;
+end $$;
+revoke all on function public.set_my_email(text) from public;
+grant execute on function public.set_my_email(text) to authenticated;
+
+-- Вход по нику — только для аккаунтов без настоящей почты (иначе по нику можно было бы узнать чужую почту).
+create or replace function public.login_email(p_nick text) returns text
+language sql security definer set search_path = public, auth as $$
+  select u.email from auth.users u join public.progress p on p.user_id = u.id
+  where lower(p.nick) = lower(p_nick) and u.email like '%@englishpath.app' limit 1;
+$$;

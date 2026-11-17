@@ -1126,7 +1126,20 @@ window.UI_EN = {
 "Укажи почту — пришлём на неё код. Если почту при регистрации не указывал — попроси репетитора сбросить пароль.": "Enter your email — we'll send a code to it. If you didn't give an email when signing up, ask your tutor to reset your password.",
 "Почта (по желанию — чтобы восстановить пароль)": "Email (optional — to reset your password)",
 "Убрать с этого устройства": "Remove from this device",
-"Убрать": "Remove"
+"Убрать": "Remove",
+"Новая почта": "New email",
+"По ней можно входить и получить код, если забудешь пароль.": "You can log in with it and get a code if you forget your password.",
+"Почта не привязана": "No email linked",
+"Привяжи почту — сможешь входить по ней и восстановить пароль, если забудешь.": "Link an email — you'll be able to log in with it and reset your password if you forget it.",
+"Сменить": "Change",
+"Привязать почту": "Link email",
+"Отвязать": "Unlink",
+"Эта почта уже привязана к другому аккаунту.": "This email is already linked to another account.",
+"Привязка почты ещё не включена в базе — попроси Claude дать SQL.": "Email linking isn't enabled in the database yet — ask Claude for the SQL.",
+"Отвязать почту? Входить можно будет по нику, а код при забытом пароле приходить не будет.": "Unlink the email? You'll log in with your username, and no code will come if you forget your password.",
+"Почта отвязана": "Email unlinked",
+"Почта привязана": "Email linked",
+"Привязал почту — входи по почте. Нет почты — по нику.": "Linked an email? Log in with it. No email — use your username."
 },
 "pat": [
 [

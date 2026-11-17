@@ -1080,6 +1080,7 @@ function renderPicker(names) {
       <form id="cl" class="hidden" novalidate>
         <label class="field"><span>Ник или почта</span><input name="nick" maxlength="80" autocomplete="username"></label>
         <label class="field"><span>Пароль</span><input name="pass" type="password" autocomplete="current-password"></label>
+        <p class="muted small">Привязал почту — входи по почте. Нет почты — по нику.</p>
         <p class="err" id="err2"></p>
         <div class="row-between"><button type="button" class="link-btn" data-act="forgot">Забыли пароль?</button><button class="btn">Войти</button></div>
       </form>
@@ -1205,7 +1206,7 @@ function login(nick) {
   P = migrate(DB.profiles[nick]); DB.current = nick; save(); chooseVoice(); render.scrolled = false; viewGrade = null; cal = null;
   location.hash = '#/path'; render();
   isAdmin = false;
-  if (P.cloud) cloudPull().then(checkAdmin);
+  if (P.cloud) { cloudPull().then(checkAdmin); if (sb) syncMail(); }
 }
 
 /* ================= карта ================= */
@@ -1606,6 +1607,7 @@ function viewMe() {
     </div>
     <h2 class="h-sub">Достижения <span class="muted">${Object.keys(P.ach).filter(k => SHOW_DREAM || !k.startsWith('cards')).length} из ${ACH.filter(a => SHOW_DREAM || !a.id.startsWith('cards')).length}</span></h2>
     <div class="ach-grid">${ACH.filter(a => SHOW_DREAM || !a.id.startsWith('cards')).map(a => `<div class="ach c-${a.c || ACH_C[a.i] || 'gold'} ${P.ach[a.id] ? 'got' : ''}"><i class="ach-ic">${icon(a.i)}</i><b>${a.t}</b><span>${a.d}</span>${P.ach[a.id] ? '' : `<em class="ach-lock">${icon('lock')}</em>`}</div>`).join('')}</div>
+    ${P.cloud ? `<h2 class="h-sub">Почта</h2><section class="mail-card" id="mailcard">${mailCardHTML()}</section>` : ''}
     <h2 class="h-sub">Настройки</h2>
     <div class="settings">
       <label class="field"><span>Голос</span>
@@ -1896,6 +1898,51 @@ async function renameTo(nick, pass) {
   return null;
 }
 
+/* ---- почта: привязать / сменить / отвязать (меняется сразу, без письма-подтверждения) ---- */
+const isServiceMail = e => !e || /@englishpath\.app$/i.test(e);
+function mailCardHTML(edit = false) {
+  const e = P.cloud && P.cloud.email;
+  if (edit) return `<form class="cc-form" id="mailform" novalidate>
+      <label class="field"><span>${e ? 'Новая почта' : 'Почта'}</span><input name="email" type="email" maxlength="80" autocomplete="email" inputmode="email" value="${esc(e || '')}"></label>
+      <p class="err" id="mailerr"></p>
+      <div class="row"><button class="btn btn-sm">Сохранить</button><button type="button" class="btn btn-ghost btn-sm" data-mail="cancel">Отмена</button></div></form>`;
+  return `<div class="cc-row">${icon('user')}<div>${e ? `<b>${esc(e)}</b><p class="muted small">По ней можно входить и получить код, если забудешь пароль.</p>`
+    : `<b>Почта не привязана</b><p class="muted small">Привяжи почту — сможешь входить по ней и восстановить пароль, если забудешь.</p>`}</div></div>
+    <div class="row"><button type="button" class="btn btn-sm ${e ? 'btn-ghost' : ''}" data-mail="edit">${icon('pencil')}${e ? 'Сменить' : 'Привязать почту'}</button>${e ? `<button type="button" class="btn btn-ghost btn-sm" data-mail="unlink">${icon('x')}Отвязать</button>` : ''}</div>`;
+}
+async function setMail(email) {
+  if (!sb) return 'Нет связи с облаком.';
+  if (await cloudUid() !== P.cloud.uid) return 'Нужно войти заново, чтобы сохранять в облако.';
+  const { data, error } = await sb.rpc('set_my_email', { p_email: email });
+  if (error) return /bad email/i.test(error.message) ? 'Почта указана неверно.' : /taken/i.test(error.message) ? 'Эта почта уже привязана к другому аккаунту.' : /function|schema cache|not find/i.test(error.message) ? 'Привязка почты ещё не включена в базе — попроси Claude дать SQL.' : cloudErr(error);
+  P.cloud.email = isServiceMail(data) ? undefined : data; save(); return null;
+}
+// какая почта привязана на самом деле (могла поменяться на другом устройстве)
+async function syncMail() {
+  try { const { data } = await sb.auth.getUser(); const e = data && data.user && data.user.email; if (!P || !P.cloud || !data.user || data.user.id !== P.cloud.uid) return;
+    const want = isServiceMail(e) ? undefined : e; if (want !== P.cloud.email) { P.cloud.email = want; save(); const b = $('#mailcard'); if (b && !$('#mailform', b)) b.innerHTML = mailCardHTML(); } } catch { /* */ }
+}
+function bindMailCard() {
+  const box = $('#mailcard'); if (!box) return;
+  box.addEventListener('click', async e => {
+    const b = e.target.closest('[data-mail]'); if (!b) return;
+    if (b.dataset.mail === 'edit') { box.innerHTML = mailCardHTML(true); return $('#mailform input', box).focus(); }
+    if (b.dataset.mail === 'cancel') { box.innerHTML = mailCardHTML(); return; }
+    if (b.dataset.mail === 'unlink') {
+      if (!await confirmBox('Отвязать почту? Входить можно будет по нику, а код при забытом пароле приходить не будет.', 'Отвязать', 'Отмена')) return;
+      const err = await setMail(''); if (err) return toast(err);
+      toast('Почта отвязана'); box.innerHTML = mailCardHTML();
+    }
+  });
+  box.addEventListener('submit', async e => {
+    e.preventDefault(); const f = e.target, er = t => { $('#mailerr', box).textContent = t; };
+    if (!isEmail(f.email.value)) return er('Почта указана неверно.');
+    er('Сохраняю…');
+    const err = await setMail(f.email.value.trim()); if (err) return er(err);
+    toast('Почта привязана'); box.innerHTML = mailCardHTML();
+  });
+}
+
 /* ---- облако в профиле ---- */
 function cloudCardHTML() {
   if (!sb) return `<div class="cc-row">${icon('cloud')}<div><b>Облако недоступно</b><p class="muted small">Нет связи с сервером — прогресс сохраняется только на этом устройстве.</p></div></div>`;
@@ -2045,7 +2092,7 @@ function bindCal() {
 }
 
 function bindMe() {
-  bindCal(); bindCloudCard();
+  bindCal(); bindCloudCard(); bindMailCard();
   $('.me-cover').addEventListener('click', e => { if (e.target.closest('[data-me-cover]')) openCover(); if (e.target.closest('[data-me-ava]')) openAvatar(); });
   const head = $('#mehead');
   head.addEventListener('click', e => {
@@ -2522,7 +2569,7 @@ if (/[?&]debug\b/.test(location.search)) window.__ep = { cur: () => cur, S: () =
 if (DB.current && DB.profiles[DB.current]) {
   P = migrate(DB.profiles[DB.current]);
   if (P.cloud && sb) cloudUid().then(uid => {
-    if (uid && uid === P.cloud.uid) return cloudPull().then(checkAdmin);
+    if (uid && uid === P.cloud.uid) { syncMail(); return cloudPull().then(checkAdmin); }
     cloudNeedLogin = true; setCloud('err'); if (!S && routeParts()[0] === 'me') render();
   });
 }

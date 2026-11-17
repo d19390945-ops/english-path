@@ -226,3 +226,16 @@ E	Убрать с этого устройства	Remove from this device
 E	Убрать	Remove
 P	Убрать «{0}» с этого устройства? Аккаунт в облаке останется — войти можно снова.	Remove "{0}" from this device? The cloud account stays — you can log in again.
 P	Убрать «{0}» с этого устройства? Его прогресс здесь удалится.	Remove "{0}" from this device? Its progress here will be deleted.
+E	Новая почта	New email
+E	По ней можно входить и получить код, если забудешь пароль.	You can log in with it and get a code if you forget your password.
+E	Почта не привязана	No email linked
+E	Привяжи почту — сможешь входить по ней и восстановить пароль, если забудешь.	Link an email — you'll be able to log in with it and reset your password if you forget it.
+E	Сменить	Change
+E	Привязать почту	Link email
+E	Отвязать	Unlink
+E	Эта почта уже привязана к другому аккаунту.	This email is already linked to another account.
+E	Привязка почты ещё не включена в базе — попроси Claude дать SQL.	Email linking isn't enabled in the database yet — ask Claude for the SQL.
+E	Отвязать почту? Входить можно будет по нику, а код при забытом пароле приходить не будет.	Unlink the email? You'll log in with your username, and no code will come if you forget your password.
+E	Почта отвязана	Email unlinked
+E	Почта привязана	Email linked
+E	Привязал почту — входи по почте. Нет почты — по нику.	Linked an email? Log in with it. No email — use your username.

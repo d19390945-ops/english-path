@@ -67,6 +67,8 @@ const I = {
   image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4.5 4"/>',
   heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/>',
   next: '<path d="M9 5l7 7-7 7"/>',
+  dollar: '<circle cx="12" cy="12" r="9"/><path d="M14.7 9.3c-.5-1-1.5-1.6-2.7-1.6-1.5 0-2.7.9-2.7 2.1 0 2.8 5.6 1.5 5.6 4.3 0 1.3-1.2 2.3-2.9 2.3-1.3 0-2.4-.6-2.9-1.7M12 5.9v1.8M12 16.4v1.8"/>',
+  bulb: '<path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>',
   cloud: '<path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.3 9.6 4.5 4.5 0 0 0 7 18.5z"/>',
 };
 const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n] || ''}</svg>`;
@@ -236,6 +238,7 @@ function mergeP(a, b) {
   out.topics = mo(out.topics, b.topics, mx);
   out.stats = mo(out.stats, b.stats, mx);
   out.xpDev = mo(out.xpDev, b.xpDev, mx);
+  out.usdEarn = mo(out.usdEarn, b.usdEarn, mx); out.usdSpent = mo(out.usdSpent, b.usdSpent, mx);
   if (b.settings && b.settings.hideCloud && out.settings) out.settings.hideCloud = true; // «скрыть навсегда» — на всех устройствах
   out.days = mo(out.days, b.days, (x, y) => {
     const dev = mo(x.dev, y.dev, (p, q) => ({ min: mx(p.min, q.min), xp: mx(p.xp, q.xp) }));
@@ -274,7 +277,7 @@ function newProfile(nick, pass, grade, goal) {
     nick, pass, grade, goal: { ...goal, start: today() }, created: Date.now(),
     xp: 0, streak: { n: 0, last: -1, best: 0 }, days: {}, lessons: {}, units: {}, grades: {}, words: {}, items: {}, ach: {}, topics: {}, notes: {}, notesAt: {}, xpDev: {},
     stats: { lessons: 0, perfect: 0, tests: 0, ace: 0, extern: 0, reviews: 0, goalDays: 0, practice: 0 },
-    settings: { sound: true, voice: '' },
+    settings: { sound: true, vibe: true, voice: '' }, usdEarn: {}, usdSpent: {},
   };
 }
 function migrate(p) { // профили из первой версии
@@ -286,6 +289,7 @@ function migrate(p) { // профили из первой версии
   if (p.gaps) { for (const t of Object.keys(p.gaps)) p.items[t] = p.gaps[t]; delete p.gaps; }
   if (p.goal && p.goal.target === 'g5') p.goal.target = 'grade';
   p.stats.practice = p.stats.practice || 0;
+  p.usdEarn = p.usdEarn || {}; p.usdSpent = p.usdSpent || {};
   return p;
 }
 
@@ -310,24 +314,87 @@ function say(text, slow) {
   speechSynthesis.speak(u);
 }
 let AC = null;
-function tone(seq) {
+// звуки синтезируем сами: мягкий «колокольчик» (основной тон + обертоны) с длинным хвостом
+function synth(notes) {
   if (!P || !P.settings.sound) return;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-    let t = AC.currentTime;
-    for (const [f, d, type = 'sine', v = 0.1] of seq) {
+    if (AC.state === 'suspended') AC.resume();
+    const t0 = AC.currentTime + 0.01;
+    for (const [f, st, d, type = 'sine', v = 0.07] of notes) {
       const o = AC.createOscillator(), g = AC.createGain();
-      o.type = type; o.frequency.value = f;
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d + 0.03); t += d * 0.75;
+      o.type = type; o.frequency.setValueAtTime(f, t0 + st);
+      g.gain.setValueAtTime(0, t0 + st); g.gain.linearRampToValueAtTime(v, t0 + st + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + st + d);
+      o.connect(g).connect(AC.destination); o.start(t0 + st); o.stop(t0 + st + d + 0.05);
     }
   } catch { /* без звука */ }
 }
+function whoosh() {
+  if (!P || !P.settings.sound) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const t = AC.currentTime + 0.01, len = 0.55, buf = AC.createBuffer(1, Math.floor(AC.sampleRate * len), AC.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+    const src = AC.createBufferSource(), bp = AC.createBiquadFilter(), g = AC.createGain();
+    src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = 1.4;
+    bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(3800, t + len);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.13, t + 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    src.connect(bp).connect(g).connect(AC.destination); src.start(t); src.stop(t + len);
+  } catch { /* */ }
+}
+const semi = (f, n) => f * Math.pow(2, n / 12);
+const bell = (f, st, d, v = 0.065) => [[f, st, d, 'sine', v], [f * 2, st, d * 0.55, 'sine', v * 0.32], [f * 3, st, d * 0.28, 'triangle', v * 0.1]];
+const vibe = p => { try { if (P && P.settings.vibe !== false && navigator.vibrate) navigator.vibrate(p); } catch { /* */ } };
 const sfx = {
-  ok: () => tone([[587, 0.09], [880, 0.18]]),
-  bad: () => tone([[185, 0.24, 'triangle', 0.13]]),
-  done: () => tone([[440, 0.1], [554, 0.1], [659, 0.1], [880, 0.34]]),
+  // чем длиннее серия верных ответов подряд, тем выше звук (до +7 полутонов)
+  ok: (combo = 1) => { const b = semi(659.25, Math.min(Math.max(combo - 1, 0), 7)); synth([...bell(b, 0, 0.32), ...bell(semi(b, 4), 0.07, 0.4), ...bell(semi(b, 7), 0.14, 1.15, 0.07)]); vibe(28); },
+  bad: () => { synth([[233, 0, 0.2, 'triangle', 0.09], [196, 0.11, 0.38, 'triangle', 0.09]]); vibe([45, 55, 45]); },
+  done: () => { synth([...bell(523.25, 0, 0.3), ...bell(659.25, 0.12, 0.3), ...bell(783.99, 0.24, 0.3), ...bell(1046.5, 0.36, 1.6, 0.075)]); vibe([30, 60, 30, 60, 90]); },
+  coin: () => synth([...bell(1318.5, 0, 0.12, 0.05), ...bell(1760, 0.07, 0.5, 0.05)]),
+  ach: () => synth([...bell(880, 0, 0.25), ...bell(1108.7, 0.07, 0.25), ...bell(1318.5, 0.14, 0.25), ...bell(1760, 0.21, 0.9, 0.06)]),
+  whoosh,
 };
+
+/* ================= доллары ================= */
+// баланс = заработано − потрачено, по устройствам (как опыт), чтобы облако правильно объединяло
+const USD = { hint: 5, restore: 50, ach: 10 };
+const sumV = o => Object.values(o || {}).reduce((a, v) => a + v, 0);
+const usd = (p = P) => Math.max(0, sumV(p.usdEarn) - sumV(p.usdSpent));
+const updUsd = () => $$('.usd-n').forEach(x => { x.textContent = usd(); });
+function earnUsd(n) { if (!n) return; P.usdEarn = P.usdEarn || {}; P.usdEarn[DEVICE] = (P.usdEarn[DEVICE] || 0) + n; updUsd(); }
+function spendUsd(n) { if (usd() < n) return false; P.usdSpent = P.usdSpent || {}; P.usdSpent[DEVICE] = (P.usdSpent[DEVICE] || 0) + n; updUsd(); return true; }
+const streakLost = () => P.streak.n >= 2 && P.streak.last < today() - 1 && today() - P.streak.last <= 4;
+function restoreStreak() {
+  if (!streakLost()) return;
+  if (!spendUsd(USD.restore)) return toast(`Нужно $${USD.restore}, у тебя $${usd()}. Доллары даются за уроки и достижения.`);
+  P.streak.last = today() - 1; P.stats.restores = (P.stats.restores || 0) + 1;
+  const fresh = checkAch(); save(); sfx.coin(); toast(`Серия ${P.streak.n} ${plural(P.streak.n, 'день', 'дня', 'дней')} восстановлена`); render(); popAch(fresh);
+}
+
+/* ---- плашка достижения: выезжает снизу и улетает в профиль ---- */
+const ACHQ = [];
+function popAch(list) { if (!list || !list.length) return; const idle = !ACHQ.length; ACHQ.push(...list); if (idle) setTimeout(nextPop, 350); }
+function nextPop() {
+  const a = ACHQ[0]; if (!a) return;
+  const el = document.createElement('button'); el.type = 'button';
+  el.className = `ach-pop c-${a.c || ACH_C[a.i] || 'gold'}`; el.setAttribute('aria-live', 'polite');
+  el.innerHTML = `<i class="ach-ic">${icon(a.i)}</i><span class="ap-t"><small>Новое достижение</small><b>${a.t}</b></span><span class="ap-usd">+$${USD.ach}</span>`;
+  document.body.appendChild(el); sfx.ach(); vibe([20, 40, 30]);
+  void el.offsetWidth; setTimeout(() => el.classList.add('in'), 20);
+  const tm = setTimeout(() => flyAway(el), ACHQ.length > 1 ? 1800 : 2600);
+  el.onclick = () => { clearTimeout(tm); flyAway(el); };
+}
+function flyAway(el) {
+  if (el.dataset.fly) return; el.dataset.fly = 1;
+  const tg = $('.player') ? $('.player .p-usd') : [...$$('.tabbar a[href="#/me"], .nav a[href="#/me"]')].find(x => x.offsetParent);
+  const r = el.getBoundingClientRect(), t = tg ? tg.getBoundingClientRect() : { left: innerWidth - 60, top: 10, width: 40, height: 30 };
+  const dx = t.left + t.width / 2 - (r.left + r.width / 2), dy = t.top + t.height / 2 - (r.top + r.height / 2);
+  sfx.whoosh();
+  const done = () => { el.remove(); if (tg) { tg.classList.remove('bump'); void tg.offsetWidth; tg.classList.add('bump'); } sfx.coin(); ACHQ.shift(); if (ACHQ.length) setTimeout(nextPop, 300); };
+  if (reduced() || !el.animate) return done();
+  el.animate([{ transform: 'translate(0, 0) scale(1)', opacity: 1 }, { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 40}px) scale(.6)`, opacity: 1, offset: 0.55 }, { transform: `translate(${dx}px, ${dy}px) scale(.1)`, opacity: 0.3 }],
+    { duration: 820, easing: 'cubic-bezier(.55, 0, .45, 1)', fill: 'forwards' }).onfinish = done;
+}
 
 /* ================= прогресс ================= */
 const gradePassed = g => !!(P.grades[g] && P.grades[g].passed);
@@ -414,6 +481,13 @@ function planText(pi = planInfo()) {
 const ACH = [
   { id: 'first', t: 'Первый шаг', d: 'Пройди первый урок', i: 'path', ok: () => P.stats.lessons >= 1 },
   { id: 'clean', t: 'Чисто', d: 'Урок без единой ошибки', i: 'check', ok: () => P.stats.perfect >= 1 },
+  { id: 'acc70', t: 'Хорошист', d: 'Пройди урок на 70% и выше', i: 'target', c: 'teal', ok: () => (P.stats.bestAcc || 0) >= 70 },
+  { id: 'acc80', t: 'Уверенно', d: 'Пройди урок на 80% и выше', i: 'target', c: 'blue', ok: () => (P.stats.bestAcc || 0) >= 80 },
+  { id: 'acc90', t: 'Почти идеально', d: 'Пройди урок на 90% и выше', i: 'star', c: 'violet', ok: () => (P.stats.bestAcc || 0) >= 90 },
+  { id: 'perfect5', t: 'Пять чистых', d: '5 уроков без единой ошибки', i: 'check', c: 'green', ok: () => P.stats.perfect >= 5 },
+  { id: 'combo10', t: 'Десять подряд', d: '10 верных ответов подряд', i: 'bolt', c: 'orange', ok: () => (P.stats.combo || 0) >= 10 },
+  { id: 'usd100', t: 'Первая сотня', d: 'Заработай $100', i: 'dollar', c: 'green', ok: () => sumV(P.usdEarn) >= 100 },
+  { id: 'restore', t: 'Второй шанс', d: 'Верни прерванную серию', i: 'flame', c: 'red', ok: () => (P.stats.restores || 0) >= 1 },
   { id: 'grammar', t: 'Теоретик', d: 'Потренируй 5 тем в справочнике', i: 'scheme', ok: () => P.stats.practice >= 5 },
   { id: 's3', t: 'Три дня подряд', d: 'Занимайся 3 дня без пропусков', i: 'flame', ok: () => P.streak.best >= 3 },
   { id: 'goal', t: 'Норма дня', d: 'Выполни дневную норму минут', i: 'target', ok: () => P.stats.goalDays >= 1 },
@@ -431,6 +505,7 @@ const ACH = [
   { id: 'cards25', t: 'Мечтатель', d: 'Открой 25 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 25 },
   { id: 'cards100', t: 'Коллекционер', d: 'Открой 100 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 100 },
 ];
+const MEDALS = { bronze: 'Бронза · 70%+', silver: 'Серебро · 80%+', gold: 'Золото · 90%+', perfect: 'Идеально · 100%' };
 const ACH_C = { path: 'red', check: 'green', scheme: 'blue', flame: 'orange', target: 'pink', flag: 'red', bolt: 'gold', star: 'gold', repeat: 'teal', book: 'green', trophy: 'gold', image: 'violet' };
 const lvTag = t => String(t).replace(/([AB][12])(\+?)/g, '<span class="lv lv-$1">$1$2</span>');
 /* ================= фото мечты ================= */
@@ -494,7 +569,7 @@ function toggleFav(id) {
   $$(`[data-fav="${id}"]`).forEach(b => { b.outerHTML = favBtn(id); });
 }
 
-function checkAch() { const fresh = []; for (const a of ACH) if (!P.ach[a.id] && a.ok()) { P.ach[a.id] = today(); fresh.push(a); } return fresh; }
+function checkAch() { const fresh = []; for (const a of ACH) if (!P.ach[a.id] && a.ok()) { P.ach[a.id] = today(); fresh.push(a); } earnUsd(fresh.length * USD.ach); return fresh; }
 
 /* ================= схемы грамматики ================= */
 const TL = { w: 640, h: 150, x0: 36, x1: 604, y: 92 };
@@ -689,6 +764,7 @@ function render() {
         ${cloudChip()}
         <span class="chip" title="Дней подряд">${icon('flame')}${P.streak.last >= today() - 1 ? P.streak.n : 0}</span>
         <span class="chip" title="Опыт">${icon('bolt')}${P.xp}</span>
+        <a class="chip chip-usd" href="#/me" title="Доллары">${icon('dollar')}<b class="usd-n">${usd()}</b></a>
       </div>
     </header>
     <main class="main" id="main">${view(arg)}</main>
@@ -757,7 +833,9 @@ function todayPanel() {
       ${st ? `<button class="btn" data-act="next"><span class="btn-col"><span>Продолжить</span><small>${esc(lb.t)}</small></span></button>` : ''}
       ${due ? `<button class="btn btn-ghost" data-act="review">${icon('repeat')}Повторить ${due}</button>` : ''}
     </div>
-  </section>`;
+  </section>
+  ${streakLost() ? `<section class="streak-save">${icon('flame')}<div><b>Серия из ${P.streak.n} ${plural(P.streak.n, 'дня', 'дней', 'дней')} прервалась</b><span>Верни её за $${USD.restore}. У тебя $${usd()}.</span></div>
+    <button class="btn btn-sm" data-act="restore" ${usd() < USD.restore ? 'disabled' : ''}>${icon('dollar')}Вернуть за $${USD.restore}</button></section>` : ''}`;
 }
 
 /* ================= вход ================= */
@@ -1302,6 +1380,7 @@ function viewMe() {
     ${sb && P.cloud && P.settings.hideCloud ? '' : `<section class="cloud-card" id="cloudcard">${cloudCardHTML()}</section>`}
     <div class="stat-row">
       <div class="stat c-gold"><i class="stat-ic">${icon('bolt')}</i><b>${P.xp}</b><span>опыт</span></div>
+      <div class="stat c-green"><i class="stat-ic">${icon('dollar')}</i><b class="usd-n">${usd()}</b><span>долларов</span></div>
       <div class="stat c-orange"><i class="stat-ic">${icon('flame')}</i><b>${P.streak.best}</b><span>лучшая серия</span></div>
       <div class="stat c-red"><i class="stat-ic">${miniFlag()}</i><b>${lessons}</b><span>${plural(lessons, 'урок', 'урока', 'уроков')}</span></div>
       <div class="stat c-blue"><i class="stat-ic">${icon('clock')}</i><b>${Math.round(totalMin())}</b><span>минут всего</span></div>
@@ -1322,13 +1401,14 @@ function viewMe() {
       <p class="plan-box ${pi.ok ? '' : 'warn'}">${esc(planText(pi))}</p>
     </div>
     <h2 class="h-sub">Достижения <span class="muted">${Object.keys(P.ach).filter(k => SHOW_DREAM || !k.startsWith('cards')).length} из ${ACH.filter(a => SHOW_DREAM || !a.id.startsWith('cards')).length}</span></h2>
-    <div class="ach-grid">${ACH.filter(a => SHOW_DREAM || !a.id.startsWith('cards')).map(a => `<div class="ach c-${ACH_C[a.i] || 'gold'} ${P.ach[a.id] ? 'got' : ''}"><i class="ach-ic">${icon(a.i)}</i><b>${a.t}</b><span>${a.d}</span>${P.ach[a.id] ? '' : `<em class="ach-lock">${icon('lock')}</em>`}</div>`).join('')}</div>
+    <div class="ach-grid">${ACH.filter(a => SHOW_DREAM || !a.id.startsWith('cards')).map(a => `<div class="ach c-${a.c || ACH_C[a.i] || 'gold'} ${P.ach[a.id] ? 'got' : ''}"><i class="ach-ic">${icon(a.i)}</i><b>${a.t}</b><span>${a.d}</span>${P.ach[a.id] ? '' : `<em class="ach-lock">${icon('lock')}</em>`}</div>`).join('')}</div>
     <h2 class="h-sub">Настройки</h2>
     <div class="settings">
       <label class="field"><span>Голос</span>
         <span class="row"><select id="voice">${TTS.list.length ? TTS.list.map(v => `<option value="${esc(v.name)}" ${TTS.voice && TTS.voice.name === v.name ? 'selected' : ''}>${esc(v.name)} (${v.lang})</option>`).join('') : '<option>Английских голосов нет</option>'}</select>
         <button class="btn btn-ghost btn-sm" data-say="Hello! My name is Anna. I'm from London.">${icon('play')}Проверить</button></span></label>
       <label class="switch"><input type="checkbox" id="snd" ${P.settings.sound ? 'checked' : ''}><span>Звуки ответов</span></label>
+      <label class="switch"><input type="checkbox" id="vib" ${P.settings.vibe !== false ? 'checked' : ''}><span>Вибрация (на телефоне)</span></label>
       <div class="row">
         <button class="btn btn-ghost btn-sm" data-act="export">Сохранить прогресс в файл</button>
         <label class="btn btn-ghost btn-sm file-btn">Загрузить из файла<input type="file" id="imp" accept=".json,application/json"></label>
@@ -1522,7 +1602,8 @@ function bindMe() {
   });
   const v = $('#voice');
   v && v.addEventListener('change', () => { P.settings.voice = v.value; chooseVoice(); save(); });
-  $('#snd').addEventListener('change', e => { P.settings.sound = e.target.checked; save(); });
+  $('#snd').addEventListener('change', e => { P.settings.sound = e.target.checked; save(); if (e.target.checked) sfx.ok(); });
+  $('#vib').addEventListener('change', e => { P.settings.vibe = e.target.checked; save(); vibe(40); });
   $('#imp').addEventListener('change', e => {
     const f = e.target.files[0]; if (!f) return;
     f.text().then(t => {
@@ -1560,6 +1641,7 @@ document.addEventListener('click', e => {
   const act = a.dataset.act;
   if (act === 'next') { const s = nextStep(); if (!s) return; if (s.kind === 'lesson') startLesson(s.l); else if (s.kind === 'test') startTest(s.u); else startFinal(s.g); }
   if (act === 'review') startReview();
+  if (act === 'restore') restoreStreak();
   if (act === 'logout') {
     if (P.cloud && sb) { const t = cloudReady ? pushNow() : Promise.resolve(); t.finally(() => sb.auth.signOut({ scope: 'local' }).catch(() => {})); }
     cloudReady = false; P = null; DB.current = null; save(); onb = null; viewGrade = null; cal = null; app.innerHTML = ''; location.hash = ''; render(); }
@@ -1594,7 +1676,7 @@ function startReview() {
 }
 const isTest = () => S.mode === 'test' || S.mode === 'final';
 function openPlayer() {
-  Object.assign(S, { i: 0, total: S.queue.length, done: 0, correct: 0, wrongs: [], start: Date.now(), screens: 0, phStart: Math.floor(Math.random() * Math.max(1, PHOTOS.length)), phN: 0 });
+  Object.assign(S, { i: 0, combo: 0, total: S.queue.length, done: 0, correct: 0, wrongs: [], start: Date.now(), screens: 0, phStart: Math.floor(Math.random() * Math.max(1, PHOTOS.length)), phN: 0 });
   const el = document.createElement('div'); el.className = 'player' + (PHOTOS.length ? ' has-photo' : '');
   el.innerHTML = `
     ${PHOTOS.length ? `<div class="p-photo" aria-hidden="true"><img class="pp" alt=""><img class="pp" alt=""><div class="pp-cap"></div></div>` : ''}
@@ -1602,6 +1684,8 @@ function openPlayer() {
       <button class="icon-btn" data-p="quit" aria-label="Выйти">${icon('x')}</button>
       <div class="bar"><i></i></div>
       <span class="p-count"></span>
+      <span class="p-combo" hidden></span>
+      <span class="p-usd" title="Доллары">${icon('dollar')}<b class="usd-n">${usd()}</b></span>
     </div>
     <div class="p-stage"><div class="p-inner" id="stage"></div></div>
     <div class="p-foot" id="foot"><div class="foot-inner"><div class="fb" id="fb"></div><button class="btn" id="go" disabled>Проверить</button></div></div>`;
@@ -1733,7 +1817,9 @@ function showExercise(ex) {
   }
   if (ex.type === 'build') cur.value = [];
   if (ex.type === 'match') cur.value = { left: null, right: null, matched: 0, miss: new Set() };
+  if (!isTest()) html += `<div class="hint-row"><button type="button" class="hint-btn">${icon('bulb')}Подсказка<span>$${USD.hint}</span></button><p class="hint-out" aria-live="polite"></p></div>`;
   swapStage(html); footReset(); bindExercise(ex);
+  const hb = $('#stage .hint-btn'); if (hb) hb.onclick = () => useHint(ex);
   if ((ex.type === 'listen' || ex.listen) && TTS.ok) setTimeout(() => say(ex.answer), 250);
 }
 function bindExercise(ex) {
@@ -1808,6 +1894,10 @@ function check() {
   else if (ex.words) ex.words.forEach(en => updWord(en, r.ok));
   if (ex.item) updItem(ex.item, r.ok);
   if (!ex.retry) { if (r.ok) S.correct++; else S.wrongs.push(ex); }
+  S.combo = r.ok ? S.combo + 1 : 0; P.stats.combo = Math.max(P.stats.combo || 0, S.combo);
+  const pc = $('.player .p-combo');
+  if (pc) { pc.hidden = S.combo < 3; if (S.combo >= 3) { pc.innerHTML = `${icon('flame')}${S.combo} подряд`; pc.classList.remove('pop'); void pc.offsetWidth; pc.classList.add('pop'); } }
+  if (r.ok && S.combo === 10) popAch(checkAch());
   if (r.ok || ex.type === 'match') S.done++;
   if (!r.ok && !isTest() && ex.type !== 'match' && !ex.retry) S.queue.push({ ...ex, retry: true, opts: ex.opts && shuffle(ex.opts), tiles: ex.tiles && shuffle(ex.tiles) });
   $$('#stage input').forEach(x => { x.readOnly = true; });
@@ -1815,9 +1905,9 @@ function check() {
   if (ex.type === 'form') { const i = $('#tin'); i.classList.add(r.ok ? 'ok' : 'bad'); }
   const showAns = ex.type === 'pick' ? (ex.dir === 'en' ? ex.ru : ex.en) : ex.en || ex.answer;
   const f = $('#foot'), fb = $('#fb');
-  if (ex.type === 'match') { f.className = 'p-foot ok show'; fb.innerHTML = `<b>${r.ok ? 'Все пары без ошибок' : 'Все пары найдены'}</b>`; if (r.ok) sfx.ok(); }
+  if (ex.type === 'match') { f.className = 'p-foot ok show'; fb.innerHTML = `<b>${r.ok ? 'Все пары без ошибок' : 'Все пары найдены'}</b>`; if (r.ok) sfx.ok(S.combo); }
   else if (r.ok) {
-    f.className = 'p-foot ok show'; sfx.ok();
+    f.className = 'p-foot ok show'; sfx.ok(S.combo);
     const showEn = r.almost || ['build', 'gap', 'form'].includes(ex.type);
     fb.innerHTML = `<b>${r.almost ? 'Почти. Проверь написание' : rnd(['Верно', 'Отлично', 'Точно', 'Так и есть'])}</b>${showEn ? `<span class="fb-a">${esc(ex.en || ex.answer)}</span>` : ''}${ex.ru && (ex.listen || ex.type === 'listen') ? `<span class="fb-r">${esc(ex.ru)}</span>` : ''}`;
     if (TTS.ok && ['build', 'gap', 'form'].includes(ex.type) && !ex.listen) say(ex.en);
@@ -1830,6 +1920,31 @@ function check() {
   g.className = 'btn ' + (r.ok || ex.type === 'match' ? 'btn-ok' : 'btn-bad');
   g.onclick = () => { S.i++; nextScreen(); };
   setBar(); g.focus({ preventScroll: true });
+}
+
+function useHint(ex) {
+  const st = $('#stage'), b = $('.hint-btn', st), out = $('.hint-out', st);
+  if (!b || S.phase !== 'ex' || cur.hint) return;
+  if (!spendUsd(USD.hint)) { toast(`Подсказка стоит $${USD.hint}, у тебя $${usd()}. Доллары даются за уроки.`); return; }
+  cur.hint = true; b.disabled = true; sfx.coin(); vibe(15); save();
+  const ans = String(ex.answer ?? ex.en ?? '').split('|')[0].trim();
+  if (['pick', 'listen', 'gap'].includes(ex.type)) {
+    const wrong = shuffle($$('.opt', st).filter(o => o.dataset.v !== ex.answer && !o.disabled));
+    wrong.slice(0, Math.max(1, Math.floor(wrong.length / 2))).forEach(o => { o.disabled = true; o.classList.remove('sel'); o.classList.add('gone'); });
+    if (cur.value && !$$('.opt.sel', st).length) { cur.value = null; $('#go').disabled = true; }
+    out.textContent = 'Убрали часть неверных вариантов.';
+  } else if (ex.type === 'match') {
+    const l = $('.m-l:not(.ok)', st), r = l && $$('.m-r:not(.ok)', st).find(x => x.dataset.en === l.dataset.en);
+    if (l && r) { l.classList.add('hinted'); r.classList.add('hinted'); }
+    out.textContent = 'Подсветили одну пару.';
+  } else if (ex.type === 'build') {
+    const need = ans.split(/\s+/)[cur.value.length] || '';
+    const t = $$('.bank .tile:not(.used)', st).find(x => norm(x.textContent) === norm(need));
+    if (t) t.classList.add('hinted');
+    out.textContent = need ? `Следующее слово начинается на «${need[0]}».` : 'Проверь порядок слов.';
+  } else {
+    out.textContent = 'Начало ответа: ' + ans.split(' ').map(w => w.replace(/^([^A-Za-z]*[A-Za-z])(.*)$/, (m, a, rest) => a + rest.replace(/[A-Za-z]/g, '·'))).join(' ');
+  }
 }
 
 /* --- итог --- */
@@ -1847,7 +1962,7 @@ function finish() {
     const prev = P.lessons[S.l.key];
     P.lessons[S.l.key] = { at: t, acc: Math.max(acc, prev ? prev.acc : 0), n: (prev ? prev.n : 0) + 1 };
     S.l.words.forEach(w => { if (!P.words[w.en]) P.words[w.en] = { s: 1, due: t + 1 }; });
-    P.stats.lessons++; if (perfect) P.stats.perfect++;
+    P.stats.lessons++; if (perfect) P.stats.perfect++; P.stats.bestAcc = Math.max(P.stats.bestAcc || 0, acc);
     xp = prev ? 5 : 15 + (perfect ? 5 : 0);
     title = perfect ? 'Урок без ошибок' : 'Урок пройден';
     sub = `${S.l.t.replace(/[.!?]$/, '')}. Слова и правила добавлены в повторение.`;
@@ -1871,6 +1986,10 @@ function finish() {
     xp = passed ? (S.mode === 'final' ? 60 : 25) : 5;
     sub = passed ? `Результат ${acc}%.` : `Результат ${acc}%, нужно 80%. Разбери ошибки и попробуй снова — или пройди уроки.`;
   }
+  const medal = S.mode === 'lesson' ? (acc >= 100 ? 'perfect' : acc >= 90 ? 'gold' : acc >= 80 ? 'silver' : acc >= 70 ? 'bronze' : null) : null;
+  const cash = S.mode === 'lesson' ? (P.lessons[S.l.key].n > 1 ? 2 : 5) + ({ bronze: 2, silver: 4, gold: 6, perfect: 10 }[medal] || 0)
+    : S.mode === 'test' ? (passed ? 15 : 0) : S.mode === 'final' ? (passed ? 40 : 0) : 3;
+  earnUsd(cash);
   P.xp += xp; d.xp += xp; dv.xp += xp;
   P.xpDev = P.xpDev || {}; P.xpDev[DEVICE] = (P.xpDev[DEVICE] || 0) + xp;
   // дневник для календаря
@@ -1891,15 +2010,16 @@ function finish() {
         ${quoteHTML(ncq)}
         <div class="reveal-act">${favBtn(nc.id)}<button class="btn btn-ghost btn-sm" data-p="dream">${icon('image')}Вся коллекция</button></div>
       </div>` : `<div class="res-ic">${icon(passed ? (isTest() ? 'trophy' : 'star') : 'repeat')}</div>`}
+      ${medal ? `<div class="medal m-${medal}">${icon(medal === 'perfect' ? 'star' : 'trophy')}<span>${MEDALS[medal]}</span></div>` : ''}
       <h2 class="res-t">${title}</h2>
       <p class="muted">${esc(sub)}</p>
       <div class="stat-row">
         <div class="stat c-pink"><i class="stat-ic">${icon('target')}</i><b>${acc}%</b><span>точность</span></div>
         <div class="stat c-blue"><i class="stat-ic">${icon('clock')}</i><b>${Math.max(1, Math.round(min))}</b><span>мин</span></div>
         <div class="stat c-gold"><i class="stat-ic">${icon('bolt')}</i><b>+${xp}</b><span>опыт</span></div>
+        <div class="stat c-green"><i class="stat-ic">${icon('dollar')}</i><b>+$${cash}</b><span>доллары</span></div>
       </div>
       ${nc && !SHOW_RESULT_CARD && SHOW_DREAM ? `<button class="card-note" data-p="dream">${icon('image')}<span>+${newCards.length} ${plural(newCards.length, 'карточка', 'карточки', 'карточек')} в «Мечтах» · ${P.cards.length} из ${PHOTOS.length}</span></button>` : ''}
-      ${fresh.length ? `<h3 class="h-sub">${fresh.length > 1 ? 'Новые достижения' : 'Новое достижение'}</h3><div class="new-ach">${fresh.map(a => `<div class="ach got">${icon(a.i)}<b>${a.t}</b><span>${a.d}</span></div>`).join('')}</div>` : ''}
       ${S.wrongs.length ? `<h3 class="h-sub">Разбор ошибок</h3><ul class="mist">${S.wrongs.map(w => `<li><b>${esc(w.type === 'pick' ? (w.dir === 'en' ? w.en + ' — ' + w.ru : w.ru + ' — ' + w.en) : w.type === 'match' ? 'Пары слов' : (w.en || w.answer))}</b>${w.ru && w.type !== 'pick' ? `<span>${esc(w.ru)}</span>` : ''}</li>`).join('')}</ul>` : ''}
     </div>`);
   $('#foot').className = 'p-foot'; $('#fb').innerHTML = '';
@@ -1909,13 +2029,14 @@ function finish() {
   g.onclick = () => { closePlayer(); if (canNext) { if (st.kind === 'lesson') startLesson(st.l); else if (st.kind === 'test') startTest(st.u); else startFinal(st.g); } };
   $('.player .bar i').style.transform = 'scaleX(1)';
   if (passed && S.mode !== 'review') { sfx.done(); if (isTest() || perfect) confetti(); }
+  setTimeout(() => popAch(fresh), 1100);
 }
 function confetti() {
   if (reduced()) return;
   const c = document.createElement('canvas'); c.className = 'confetti';
   const W = c.width = innerWidth, H = c.height = innerHeight; document.body.appendChild(c);
   const ctx = c.getContext('2d'), dark = matchMedia('(prefers-color-scheme: dark)').matches;
-  const cols = dark ? ['#EDEDED', '#9A9A9A', '#5F5F5F', '#C9A44C'] : ['#121212', '#6E6E6E', '#C9C9C6', '#A07A1E'];
+  const cols = ['#F0414F', '#FFFFFF', '#4D86FF', '#F5B83D', '#3CCB7F'];
   const ps = Array.from({ length: 80 }, () => ({ x: W / 2 + (Math.random() - 0.5) * 140, y: H * 0.32, vx: (Math.random() - 0.5) * 11, vy: -Math.random() * 11 - 4, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3, w: 5 + Math.random() * 6, c: rnd(cols) }));
   const t0 = performance.now();
   (function f(t) {

@@ -936,3 +936,98 @@ body:not(:has(#main)) #side-art { display: none; }
 @keyframes sideIn { from { opacity: 0; transform: translateY(14px); } }
 @media (prefers-reduced-motion: reduce) { #side-art figure { animation: none; } }
 .shell { position: relative; z-index: 1; }
+
+/* ---------- игра: доллары, подсказки, медали, плашки (2026-11-17) ---------- */
+.chip-usd { color: #3CCB7F; text-decoration: none; padding: 4px 10px 4px 7px; border-radius: 999px; background: rgba(60, 203, 127, .14); box-shadow: inset 0 0 0 1px rgba(60, 203, 127, .35); }
+.chip-usd .ic { stroke-width: 2; }
+.bump { animation: bump .5s var(--ease-spring); }
+@keyframes bump { 40% { transform: scale(1.28); } }
+
+.streak-save { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 16px; margin-top: -4px;
+  background: linear-gradient(110deg, rgba(255, 138, 61, .22), rgba(240, 65, 79, .12) 60%, var(--surface));
+  border: 1px solid rgba(255, 138, 61, .45); margin-bottom: 22px; }
+.streak-save > .ic { width: 30px; height: 30px; color: #FF8A3D; flex: none; }
+.streak-save div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.streak-save span { font-size: 14px; color: var(--ink-2); }
+.streak-save .btn { background: #FF8A3D; border-color: #FF8A3D; color: #1A0E05; }
+@media (max-width: 600px) { .streak-save { flex-wrap: wrap; } .streak-save .btn { width: 100%; } }
+
+/* плашка достижения */
+.ach-pop { position: fixed; z-index: 120; left: 0; right: 0; bottom: calc(96px + env(safe-area-inset-bottom)); margin: 0 auto; width: max-content; max-width: calc(100vw - 32px);
+  display: flex; align-items: center; gap: 14px; padding: 12px 18px 12px 12px; border-radius: 20px; border: 0; text-align: left; color: #fff; cursor: pointer;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--c) 92%, #000) 0%, color-mix(in srgb, var(--c) 55%, #10131c) 100%);
+  box-shadow: 0 18px 44px -12px color-mix(in srgb, var(--c) 80%, transparent), inset 0 0 0 1px rgba(255, 255, 255, .25);
+  translate: 0 140%; opacity: 0; transition: translate .55s var(--ease-spring), opacity .3s; }
+.ach-pop.in { translate: 0 0; opacity: 1; }
+.ach-pop .ach-ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: rgba(255, 255, 255, .95); color: color-mix(in srgb, var(--c) 80%, #000); flex: none; }
+.ach-pop .ach-ic .ic { width: 26px; height: 26px; stroke-width: 2.1; }
+.ap-t { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.ap-t small { font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; font-weight: 700; }
+.ap-t b { font: 600 22px var(--f-head); }
+.ap-usd { margin-left: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(0, 0, 0, .28); font-weight: 700; font-size: 14px; }
+.player ~ .ach-pop, body:has(.player) .ach-pop { bottom: calc(110px + env(safe-area-inset-bottom)); }
+@media (prefers-reduced-motion: reduce) { .ach-pop { transition: opacity .2s; translate: 0 0; } }
+
+/* ---------- урок: ярче ---------- */
+.player::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(55% 45% at 0% 0%, rgba(208, 18, 47, .26), transparent 70%), radial-gradient(55% 45% at 100% 100%, rgba(59, 100, 255, .26), transparent 70%); }
+.player > .p-top, .player > .p-stage, .player > .p-foot { position: relative; z-index: 1; }
+.player .bar { height: 12px; border-radius: 999px; background: rgba(255, 255, 255, .1); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .4); }
+.player .bar i { border-radius: inherit; background: linear-gradient(90deg, #F0414F, #FF8A3D 45%, #F5B83D); position: relative; box-shadow: 0 0 14px rgba(255, 138, 61, .55); }
+.player .bar i::after { content: ''; position: absolute; left: 8px; right: 8px; top: 3px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .45); }
+.p-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+.p-combo { display: inline-flex; align-items: center; gap: 4px; padding: 5px 11px 5px 8px; border-radius: 999px; font-weight: 700; font-size: 14px; white-space: nowrap;
+  background: linear-gradient(120deg, #FF8A3D, #F0414F); color: #fff; box-shadow: 0 6px 18px -6px rgba(255, 110, 60, .8); }
+.p-combo .ic { width: 17px; height: 17px; }
+.p-combo.pop { animation: bump .45s var(--ease-spring); }
+.p-combo[hidden] { display: none; }
+.p-usd { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: #3CCB7F; }
+.p-usd .ic { width: 19px; height: 19px; stroke-width: 2; }
+@media (max-width: 480px) { .p-top { gap: 10px; } .p-combo { font-size: 12.5px; padding: 4px 9px 4px 6px; } }
+
+/* варианты «объёмные», как кнопки */
+.player .opt, .player .tile { border-width: 2px; border-radius: 16px; box-shadow: 0 4px 0 rgba(0, 0, 0, .35); transition: transform 120ms var(--ease-out), box-shadow 120ms, border-color 120ms, background 120ms; }
+.player .opt:active:not(:disabled), .player .tile:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+.player .opt:hover:not(:disabled) { border-color: color-mix(in srgb, var(--hi) 60%, var(--ink)); }
+.player .opt.sel { border-color: #4D86FF; background: color-mix(in srgb, #4D86FF 26%, var(--surface)); box-shadow: 0 4px 0 #2F5FD0; }
+.player .opt.ok { border-color: #3CCB7F; background: color-mix(in srgb, #3CCB7F 26%, var(--surface)); color: #CFFBE0; box-shadow: 0 4px 0 #23985A; animation: okPop .4s var(--ease-spring); }
+.player .opt.bad { border-color: #F0414F; background: color-mix(in srgb, #F0414F 24%, var(--surface)); color: #FFD6D9; box-shadow: 0 4px 0 #B32432; }
+@keyframes okPop { 40% { transform: scale(1.04); } }
+.player .opt kbd { border-radius: 8px; }
+.opt.gone { opacity: .22; text-decoration: line-through; box-shadow: none !important; }
+.opt.hinted, .tile.hinted { border-color: #F5B83D !important; box-shadow: 0 0 0 3px rgba(245, 184, 61, .35), 0 4px 0 #B8841F !important; }
+.player .type-in, .player .form-in { border-radius: 14px; }
+
+/* подсказка */
+.hint-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.hint-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px 8px 11px; border-radius: 999px; font-weight: 600; font-size: 14.5px;
+  border: 1.5px solid rgba(245, 184, 61, .6); background: rgba(245, 184, 61, .14); color: #F5C860; transition: transform .12s, background .15s; }
+.hint-btn:hover:not(:disabled) { background: rgba(245, 184, 61, .24); }
+.hint-btn:active:not(:disabled) { transform: scale(.96); }
+.hint-btn span { padding: 1px 7px; border-radius: 999px; background: rgba(60, 203, 127, .2); color: #3CCB7F; font-size: 13px; }
+.hint-btn:disabled { opacity: .45; cursor: default; }
+.hint-btn .ic { width: 18px; height: 18px; }
+.hint-out { font-size: 15px; color: #F5C860; font-weight: 500; letter-spacing: .02em; }
+.hint-out:empty { display: none; }
+
+/* низ урока: ярче */
+.player .p-foot.ok { background: linear-gradient(180deg, rgba(60, 203, 127, .28), rgba(20, 60, 38, .95)); color: #BFFAD5; }
+.player .p-foot.bad { background: linear-gradient(180deg, rgba(240, 65, 79, .28), rgba(70, 18, 24, .95)); color: #FFC9CD; }
+.player .p-foot.show .fb { animation: fbIn .35s var(--ease-spring); }
+@keyframes fbIn { from { transform: translateY(10px); opacity: 0; } }
+.player .btn-ok { background: #3CCB7F; border-color: #3CCB7F; color: #06210F; box-shadow: 0 4px 0 #23985A; }
+.player .btn-bad { background: #F0414F; border-color: #F0414F; color: #fff; box-shadow: 0 4px 0 #B32432; }
+.player .foot-inner .btn:not(:disabled) { box-shadow: 0 4px 0 color-mix(in srgb, var(--hi) 60%, #000); }
+.player .foot-inner .btn.btn-ok { box-shadow: 0 4px 0 #23985A; }
+.player .foot-inner .btn.btn-bad { box-shadow: 0 4px 0 #B32432; }
+.player .foot-inner .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+
+/* медаль за урок */
+.medal { align-self: center; display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px 8px 10px; border-radius: 999px; font-weight: 700; font-size: 15px; color: #1A1206;
+  animation: medalIn .7s var(--ease-spring) both; }
+.medal .ic { width: 22px; height: 22px; stroke-width: 2.1; }
+.m-bronze { background: linear-gradient(120deg, #E0A06A, #B4703C); box-shadow: 0 8px 22px -8px #C9824A; }
+.m-silver { background: linear-gradient(120deg, #F1F4F8, #A9B4C2); box-shadow: 0 8px 22px -8px #C7D0DB; }
+.m-gold { background: linear-gradient(120deg, #FFE08A, #F2A93B); box-shadow: 0 8px 26px -8px #F5B83D; }
+.m-perfect { background: linear-gradient(120deg, #9EF0FF, #B07CFF 55%, #FF6FA8); box-shadow: 0 8px 28px -8px #B07CFF; color: #120A22; }
+@keyframes medalIn { from { transform: scale(.4) rotate(-8deg); opacity: 0; } }

@@ -133,8 +133,9 @@ const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-h
 /* ================= данные ================= */
 const COURSE = window.COURSE;
 const GRADES = Object.keys(COURSE).map(Number).sort((a, b) => a - b);
-const ALL_GRADES = [5, 6, 7, 8, 9, 10, 11];
-const LEVELS = { A1: 'Начальный', A2: 'Базовый', B1: 'Средний', B2: 'Выше среднего' };
+const ALL_GRADES = [5, 6, 7, 8, 9, 10, 11, 12]; // 12 — ступень C1 после 11 класса
+const MAX_G = 12;
+const LEVELS = { A1: 'Начальный', A2: 'Базовый', B1: 'Средний', B2: 'Выше среднего', C1: 'Продвинутый' };
 const RU_INDEX = new Map();
 
 function parseGap(str) {
@@ -570,19 +571,19 @@ function updItem(text, ok) {
 /* ---- план ---- */
 const LESSON_MIN = g => g === 5 ? 9 : 14;
 /* школа — по классам, остальные — по ступеням того же курса */
-const STAGES = { 5: 'A1', 6: 'A1+', 7: 'A2', 8: 'A2+', 9: 'B1', 10: 'B1+', 11: 'B2' };
+const STAGES = { 5: 'A1', 6: 'A1+', 7: 'A2', 8: 'A2+', 9: 'B1', 10: 'B1+', 11: 'B2', 12: 'C1' };
 const isGen = (p = P) => !!p && p.mode === 'general';
-const gTitle = (g, p = P) => isGen(p) ? `Ступень ${STAGES[g]}` : `${g} класс`;
-const gShort = (g, p = P) => isGen(p) ? STAGES[g] : String(g);
-const gOf = (g, p = P) => isGen(p) ? `ступени ${STAGES[g]}` : `${g} класса`;
-const TARGETS_SCHOOL = { grade: 'Программа своего класса', A2: 'Уровень A2 (7 класс)', B1: 'Уровень B1 (9 класс)', B2: 'Уровень B2 (11 класс)' };
-const TARGETS_GEN = { A1: 'Уровень A1 — основа', A2: 'Уровень A2 — уверенный базовый', B1: 'Уровень B1 — свободное общение', B2: 'Уровень B2 — работа и учёба' };
+const gTitle = (g, p = P) => g === 12 ? 'Уровень C1' : isGen(p) ? `Ступень ${STAGES[g]}` : `${g} класс`;
+const gShort = (g, p = P) => g === 12 ? 'C1' : isGen(p) ? STAGES[g] : String(g);
+const gOf = (g, p = P) => g === 12 ? 'уровня C1' : isGen(p) ? `ступени ${STAGES[g]}` : `${g} класса`;
+const TARGETS_SCHOOL = { grade: 'Программа своего класса', A2: 'Уровень A2 (7 класс)', B1: 'Уровень B1 (9 класс)', B2: 'Уровень B2 (11 класс)', C1: 'Уровень C1 — свободно, как за границей' };
+const TARGETS_GEN = { A1: 'Уровень A1 — основа', A2: 'Уровень A2 — уверенный базовый', B1: 'Уровень B1 — разговорный', B2: 'Уровень B2 — работа и учёба', C1: 'Уровень C1 — свободно, как за границей' };
 const targetsFor = mode => mode === 'general' ? TARGETS_GEN : TARGETS_SCHOOL;
 const PLACES = { school: 'Учусь в школе', uni: 'Учусь в колледже или вузе', work: 'Работаю', other: 'Другое' };
 const PURPOSES = { school: 'Школа и экзамены', travel: 'Путешествия', career: 'Работа и карьера', abroad: 'Учёба или жизнь за границей', self: 'Для себя' };
 const DEADLINES = [[4, '1 месяц'], [8, '2 месяца'], [13, '3 месяца'], [26, 'полгода'], [52, 'год']];
 const MINUTES = [15, 20, 30, 45, 60];
-const targetGrade = () => ({ grade: Math.min(11, Math.max(5, P.grade)), A1: 6, A2: 8, B1: 10, B2: 11 }[P.goal.target] || 11);
+const targetGrade = () => ({ grade: Math.min(11, Math.max(5, P.grade)), A1: 6, A2: 8, B1: 10, B2: 11, C1: 12 }[P.goal.target] || 11);
 function planInfo() {
   const tg = targetGrade(); let total = 0;
   for (const g of GRADES) {
@@ -599,7 +600,7 @@ function planText(pi = planInfo()) {
   if (!pi.total) return 'Цель выполнена. Можно поставить следующую в профиле.';
   const h = Math.round(pi.total / 60);
   const hrs = pi.total < 90 ? `${pi.total} мин` : `${h} ${plural(h, 'час', 'часа', 'часов')}`;
-  let s = `До ${isGen() ? 'уровня ' + STAGES[pi.tg].replace(/\.\d$/, '') : pi.tg + ' класса'} осталось около ${hrs} занятий. При ${P.goal.minutes} мин в день — ${pi.days} ${plural(pi.days, 'день', 'дня', 'дней')}, до ${fmtDate(pi.finish)}.`;
+  let s = `До ${isGen() || pi.tg === 12 ? 'уровня ' + STAGES[pi.tg].replace(/\.\d$/, '') : pi.tg + ' класса'} осталось около ${hrs} занятий. При ${P.goal.minutes} мин в день — ${pi.days} ${plural(pi.days, 'день', 'дня', 'дней')}, до ${fmtDate(pi.finish)}.`;
   if (!pi.ok) s += ` К сроку не успеть: нужно около ${pi.need} мин в день.`;
   return s;
 }
@@ -628,6 +629,7 @@ const ACH = [
   { id: 'g7', t: 'Уровень A2', d: 'Сдай итоговую за 7 класс (A2)', i: 'trophy', ok: () => gradePassed(7) },
   { id: 'g9', t: 'Уровень B1', d: 'Сдай итоговую за 9 класс (B1)', i: 'trophy', ok: () => gradePassed(9) },
   { id: 'g11', t: 'Уровень B2', d: 'Сдай итоговую за 11 класс (B2)', i: 'trophy', ok: () => gradePassed(11) },
+  { id: 'g12', t: 'Уровень C1', d: 'Сдай итоговую уровня C1', i: 'trophy', c: 'pink', ok: () => gradePassed(12) },
   { id: 's30', t: 'Месяц', d: '30 дней подряд', i: 'flame', ok: () => P.streak.best >= 30 },
   { id: 'cards25', t: 'Мечтатель', d: 'Открой 25 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 25 },
   { id: 'cards100', t: 'Коллекционер', d: 'Открой 100 карточек мечты', i: 'image', ok: () => (P.cards || []).length >= 100 },
@@ -653,12 +655,26 @@ function unlockCards(n) {
   for (const p of PHOTOS) { if (got.length >= n) break; if (!P.cards.includes(p.id)) { P.cards.push(p.id); got.push(p); } }
   return got;
 }
-// у каждого модуля своё фото: модули идут подряд по всем классам, фото — по перемешанному списку
+// «колода» фото на устройстве: случайный порядок, без повторов, пока не покажем всю коллекцию;
+// новая колода начинается не с тех фото, что были последними. Модулям и урокам фото берутся из неё —
+// при каждом заходе картинки новые, и в следующем модуле не повторяются фото предыдущего.
+const DECK_KEY = 'englishpath.phdeck';
+function deckLoad() { try { const d = JSON.parse(localStorage.getItem(DECK_KEY) || '{}'); return { left: (d.left || []).filter(id => PH.has(id)), last: d.last || [] }; } catch { return { left: [], last: [] }; } }
+function drawPhoto() {
+  if (!PHOTOS.length) return null;
+  const d = deckLoad();
+  if (!d.left.length) { const recent = new Set(d.last); const all = shuffle(PHOTOS.map(p => p.id)); d.left = [...all.filter(id => !recent.has(id)), ...all.filter(id => recent.has(id))]; }
+  const id = d.left.shift(); d.last = [id, ...d.last.filter(x => x !== id)].slice(0, 30);
+  try { localStorage.setItem(DECK_KEY, JSON.stringify(d)); } catch { /* */ }
+  return PH.get(id);
+}
+const peekPhoto = () => { const d = deckLoad(); return d.left.length ? PH.get(d.left[0]) : null; };
 const UNIT_ORD = new Map(); { let k = 0; for (const g of Object.keys(COURSE).map(Number).sort((a, b) => a - b)) for (const u of COURSE[g].units) UNIT_ORD.set(`${g}.${u.id}`, k++); }
-const unitPhoto = u => PHOTOS.length ? PHOTOS[UNIT_ORD.get(u.key) % PHOTOS.length] : null;
+const UNIT_PH = new Map(); // фото модулей на этот заход (при перерисовке не меняются)
+const unitPhoto = u => { if (!UNIT_PH.has(u.key)) UNIT_PH.set(u.key, drawPhoto()); return UNIT_PH.get(u.key); };
 /* «что даст урок» — цифры */
-const LEVEL_OF = g => g <= 6 ? 'A1' : g <= 8 ? 'A2' : g <= 10 ? 'B1' : 'B2';
-const LEVEL_GRADES = { A1: [5, 6], A2: [7, 8], B1: [9, 10], B2: [11] };
+const LEVEL_OF = g => g <= 6 ? 'A1' : g <= 8 ? 'A2' : g <= 10 ? 'B1' : g <= 11 ? 'B2' : 'C1';
+const LEVEL_GRADES = { A1: [5, 6], A2: [7, 8], B1: [9, 10], B2: [11], C1: [12] };
 const gradeItems = g => COURSE[g].units.reduce((a, u) => a + u.lessons.length + 1, 0) + 1; // уроки + тесты + итоговая
 const levelItems = lv => LEVEL_GRADES[lv].reduce((a, g) => a + gradeItems(g), 0);
 const fmtPct = x => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10).toString().replace('.', ',');
@@ -961,7 +977,7 @@ function authFrame(inner) {
       <span class="auth-grades" aria-hidden="true">5–11</span>
       <span class="auth-levels"><b class="lv lv-A1">A1</b><i></i><b class="lv lv-C1">C1</b></span>
       <h1 class="script">Your Road<br>to the USA</h1>
-      <p>Английский с нуля до B2 — по школьной программе или в своём темпе. Грамматика в схемах, практика по-настоящему.</p>
+      <p>Английский с нуля до C1 — уровня, на котором свободно говоришь за границей. По школьной программе или в своём темпе.</p>
     </div>
     <div class="auth-side">
       <div class="lang-sw" role="group" aria-label="Язык интерфейса"><button type="button" data-lang="ru" class="${EN ? '' : 'on'}">RU</button><button type="button" data-lang="en" class="${EN ? 'on' : ''}">EN</button></div>
@@ -1000,7 +1016,7 @@ const stepGrade = () => `
   ${onb.place === 'school' ? `<h3 class="h-sub">В каком классе?</h3>
   <div class="pick-grid">${ALL_GRADES.map(g => `<button type="button" class="opt opt-sq ${onb.grade === g ? 'sel' : ''}" data-grade="${g}">${g}</button>`).join('')}</div>
   <p class="muted small">Пойдёшь по классам. Знаешь программу класса — сдай его итоговую контрольную и переходи к следующему.</p>`
-  : `<p class="muted small">Пойдёшь не по классам, а по ступеням: A1 → A2 → B1 → B2. Уже что-то знаешь — сдай контрольную ступени и иди дальше.</p>`}
+  : `<p class="muted small">Пойдёшь не по классам, а по ступеням: A1 → A2 → B1 → B2 → C1. Уже что-то знаешь — сдай контрольную ступени и иди дальше.</p>`}
   <div class="row-end"><button type="button" class="btn btn-ghost" data-act="back">Назад</button><button class="btn">Дальше</button></div>`;
 const stepGoal = () => `
   <h2>Зачем тебе английский?</h2>
@@ -1024,7 +1040,7 @@ function stepPlan() {
     <p>${esc(txt)}</p>
     ${onb.place !== 'school' || onb.grade > 5 ? `<p><b>Не с нуля?</b> У каждой ${onb.place === 'school' ? 'программы класса' : 'ступени'} есть итоговая контрольная — сдай её на 80%, и она засчитана.</p>` : ''}
   </div>
-  <p class="muted small">Это программа сайта: грамматика, слова, перевод, аудирование. Для настоящего B2 добавь чтение книг и разговорную практику.</p>
+  <p class="muted small">Это программа сайта: грамматика, слова, перевод, аудирование — до C1. Чтобы говорить свободно, добавь чтение книг и живую разговорную практику.</p>
   <div class="row-end"><button type="button" class="btn btn-ghost" data-act="back">Назад</button><button class="btn">Начать</button></div>`;
 }
 function bindOnb() {
@@ -1213,7 +1229,7 @@ function login(nick) {
 const ST_GAP = 96, ST_W = 300;
 const stPos = (i, ui) => ({ x: ST_W / 2 + 78 * Math.sin(i * 1.15 + ui * 0.9), y: 70 + i * ST_GAP });
 let viewGrade = null;
-function currentGrade() { const s = nextStep(); return s ? (s.l ? s.l.unit.grade : s.u ? s.u.grade : s.g) : 11; }
+function currentGrade() { const s = nextStep(); return s ? (s.l ? s.l.unit.grade : s.u ? s.u.grade : s.g) : MAX_G; }
 function viewPath(arg) {
   const g = arg && gradeExists(+arg) ? +arg : (viewGrade || currentGrade());
   viewGrade = g;
@@ -1287,7 +1303,7 @@ function finalHTML(g) {
     <span class="ghost-num sm" aria-hidden="true">${pad2(g)}</span>
     ${icon('trophy', 'final-ic')}
     <h2>Итоговая контрольная</h2>
-    <p>${gradePassed(g) ? `Сдана на ${rec.best}%. ${g < 11 ? `Открыта следующая: ${gTitle(g + 1)}.` : 'Курс завершён.'}` : all ? `40 заданий по всей ${isGen() ? 'ступени' : 'программе класса'}. Нужно 80%.` : `Уже знаешь эту программу? Сдай на 80% — и ${isGen() ? 'ступень засчитана' : 'класс засчитан'}, откроется следующ${isGen() ? 'ая' : 'ий'}.`}</p>
+    <p>${gradePassed(g) ? `Сдана на ${rec.best}%. ${g < MAX_G ? `Открыта следующая: ${gTitle(g + 1)}.` : 'Курс завершён.'}` : all ? `40 заданий по всей ${isGen() ? 'ступени' : 'программе класса'}. Нужно 80%.` : `Уже знаешь эту программу? Сдай на 80% — и ${isGen() ? 'ступень засчитана' : 'класс засчитан'}, откроется следующ${isGen() ? 'ая' : 'ий'}.`}</p>
     ${open ? `<button class="btn ${all || gradePassed(g) ? '' : 'btn-ghost'}" data-final="${g}">${gradePassed(g) ? 'Пересдать' : all ? 'Начать контрольную' : 'Сдать экстерном'}</button>` : ''}
   </section>`;
 }
@@ -1342,17 +1358,17 @@ function viewGrammar(arg) {
     return `
     <article class="page topic-page">
       <a class="back" href="#/grammar">${icon('back')}Все темы</a>
-      <p class="hero-lvl">${t.lvl}, ${LEVELS[t.lvl]}${grades.length ? `. Встречается: ${grades.join(', ')} класс` : ''}</p>
+      <p class="hero-lvl">${t.lvl}, ${LEVELS[t.lvl]}${grades.filter(g => g < 12).length ? `. Встречается: ${grades.filter(g => g < 12).join(', ')} класс` : ''}</p>
       <h1 class="page-h">${esc(t.t)}</h1>
       ${topicHTML(t)}
     </article>`;
   }
-  const by = ['A1', 'A2', 'B1', 'B2'].map(lv => [lv, window.GRAMMAR.filter(x => x.lvl === lv)]);
+  const by = ['A1', 'A2', 'B1', 'B2', 'C1'].map(lv => [lv, window.GRAMMAR.filter(x => x.lvl === lv)]);
   return `
   <div class="page">
     <section class="hero hero-plain">
       <span class="ghost-num" aria-hidden="true">${window.GRAMMAR.length}</span>
-      <div class="hero-t"><p class="hero-lvl">Справочник</p><h1>Грамматика</h1><p class="muted">Все темы с 5 по 11 класс: схемы, линии времени, стрелки, примеры с озвучкой и тренировка по каждой теме.</p></div>
+      <div class="hero-t"><p class="hero-lvl">Справочник</p><h1>Грамматика</h1><p class="muted">Все темы от A1 до C1: схемы, линии времени, стрелки, примеры с озвучкой и тренировка по каждой теме.</p></div>
     </section>
     <label class="search">${icon('search')}<input id="gq" placeholder="Найти тему: Present Perfect, пассив, артикли…" autocomplete="off"></label>
     ${by.map(([lv, list]) => `
@@ -1468,7 +1484,7 @@ function studentSummary(row) {
     const t = today(); let week = 0;
     for (let d = t - 6; d <= t; d++) week += (P.days[d] && P.days[d].min) || 0;
     const st = nextStep(), lb = stepLabel(st);
-    const curG = st ? (st.l ? st.l.unit.grade : st.u ? st.u.grade : st.g) : 11;
+    const curG = st ? (st.l ? st.l.unit.grade : st.u ? st.u.grade : st.g) : MAX_G;
     return {
       nick: row.nick, uid: row.user_id, avatar: P.avatar, mode: P.mode, label: isGen() ? 'своя программа' : `${P.grade} класс`,
       xp: P.xp, lessons: Object.keys(P.lessons).length, units: Object.values(P.units).filter(u => u.passed).length,
@@ -1533,7 +1549,7 @@ function adminDetail(box, row) {
       ${logs.length ? `<ul class="cd-log">${logs.map(x => `<li><span class="muted">${fmtDate(x.d)}:</span> ${esc(x.l)}</li>`).join('')}</ul>` : '<p class="empty">Пока нет записей.</p>'}`;
   });
   const self = P.cloud && row.user_id === P.cloud.uid;
-  box.innerHTML = html + (self ? '' : `<div class="adm-unlock"><div><b>${row.data.unlockAll ? 'Все классы открыты' : 'Классы открываются по порядку'}</b><p class="muted small">${row.data.unlockAll ? 'Ученик может проходить любые уроки и тесты 5–11 класса без контрольных.' : 'Открой всё — и ученик сразу сможет пробовать любой класс и уровень.'}</p></div>
+  box.innerHTML = html + (self ? '' : `<div class="adm-unlock"><div><b>${row.data.unlockAll ? 'Все классы открыты' : 'Классы открываются по порядку'}</b><p class="muted small">${row.data.unlockAll ? 'Ученик может проходить любые уроки и тесты 5–11 класса и уровня C1 без контрольных.' : 'Открой всё — и ученик сразу сможет пробовать любой класс и уровень.'}</p></div>
     <button type="button" class="btn btn-sm ${row.data.unlockAll ? 'btn-ghost' : ''}" data-unlock>${icon(row.data.unlockAll ? 'lock' : 'bolt')}${row.data.unlockAll ? 'Закрыть обратно' : 'Открыть все классы'}</button></div>
     <div class="adm-danger"><button type="button" class="btn btn-sm btn-danger" data-del>${icon('x')}Удалить ученика</button><p class="muted small">Аккаунт и весь прогресс удалятся навсегда — вернуть нельзя.</p></div>`);
   const un = $('[data-unlock]', box);
@@ -2250,7 +2266,7 @@ function swapStage(html) {
 // большое фото в уроке: плавная смена каждые PLAYER_PHOTO_EVERY экранов
 function playerPhoto() {
   const box = $('.player .p-photo'); if (!box || !PHOTOS.length) return;
-  const p = PHOTOS[(S.phStart + S.phN++) % PHOTOS.length];
+  const p = drawPhoto(); S.phN++;
   const imgs = $$('img.pp', box), next = imgs.find(x => !x.classList.contains('on')) || imgs[0], cur = imgs.find(x => x.classList.contains('on'));
   const q = quoteFor(p), cap = $('.pp-cap', box);
   const show = () => {
@@ -2260,7 +2276,7 @@ function playerPhoto() {
   };
   next.onload = show; next.onerror = show; next.src = photoSrc(p);
   // заранее подгружаем следующее
-  const after = PHOTOS[(S.phStart + S.phN) % PHOTOS.length]; if (after) { const pre = new Image(); pre.src = photoSrc(after); }
+  const after = peekPhoto(); if (after) { const pre = new Image(); pre.src = photoSrc(after); }
 }
 function nextScreen() {
   S.phase = 'ex'; setBar();
@@ -2285,7 +2301,7 @@ function showIntro(kind) {
       <div class="card info">
         <p>${S.total} заданий. Чтобы сдать, нужно <b>80%</b> — не больше ${allowed} ${plural(allowed, 'ошибки', 'ошибок', 'ошибок')}.</p>
         <p>Подсказок и повторов нет. Половина — на ввод: раскрыть скобки, перевести, записать на слух${TTS.ok ? '' : ' (на этом устройстве нет английского голоса — аудио заменено)'}.</p>
-        <p>${S.mode === 'final' ? `Сдашь — ${gTitle(S.g)} засчитан${isGen() ? 'а' : ''}${S.g < 11 ? `, откроется ${gTitle(S.g + 1)}` : ''}.` : 'Сдашь — модуль закрыт, даже если уроки не пройдены.'}</p>
+        <p>${S.mode === 'final' ? `Сдашь — ${gTitle(S.g)} засчитан${isGen() ? 'а' : ''}${S.g < MAX_G ? `, откроется ${gTitle(S.g + 1)}` : ''}.` : 'Сдашь — модуль закрыт, даже если уроки не пройдены.'}</p>
       </div>`;
   }
   const st = swapStage(html);
@@ -2497,7 +2513,7 @@ function finish() {
       const rec = P.grades[S.g] || {};
       P.grades[S.g] = { best: Math.max(rec.best || 0, acc), passed: rec.passed || passed, at: t };
       title = passed ? `${gTitle(S.g)} — сдано` : 'Контрольная пока не сдана';
-      if (passed) viewGrade = Math.min(11, S.g + 1);
+      if (passed) viewGrade = Math.min(MAX_G, S.g + 1);
     }
     xp = passed ? (S.mode === 'final' ? 60 : 25) : 5;
     sub = passed ? `Результат ${acc}%.` : `Результат ${acc}%, нужно 80%. Разбери ошибки и попробуй снова — или пройди уроки.`;

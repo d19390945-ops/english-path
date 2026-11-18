@@ -4,7 +4,8 @@ const fs = require('fs'), path = require('path');
 const site = path.join(__dirname, '..', '..', 'site');
 global.window = {};
 eval(fs.readFileSync(path.join(site, 'data/grammar.js'), 'utf8'));
-for (let g = 5; g <= 11; g++) eval(fs.readFileSync(path.join(site, `data/grade${g}.js`), 'utf8'));
+eval(fs.readFileSync(path.join(site, 'data/grammar-c1.js'), 'utf8'));
+for (let g = 5; g <= 12; g++) eval(fs.readFileSync(path.join(site, `data/grade${g}.js`), 'utf8'));
 
 // та же нормализация и хеш, что в app.js
 const audioNorm = s => String(s).replace(/\*\*/g, '').toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();

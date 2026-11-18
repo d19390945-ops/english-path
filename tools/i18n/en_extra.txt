@@ -239,3 +239,127 @@ E	Отвязать почту? Входить можно будет по ник�
 E	Почта отвязана	Email unlinked
 E	Почта привязана	Email linked
 E	Привязал почту — входи по почте. Нет почты — по нику.	Linked an email? Log in with it. No email — use your username.
+E	Выделение: It was… that / What I need is…	Cleft sentences: It was… that / What I need is…
+E	Чтобы выделить главное, фразу делят на две части: It is / was X that… или What… is X.	To highlight the key point, split the sentence in two: It is / was X that… or What… is X.
+E	Обычно	Usual
+E	С выделением	With emphasis
+E	О людях — It was Tom who…, обо всём остальном — It was … that…	For people — It was Tom who…, for everything else — It was … that…
+E	Причастные обороты	Participle clauses
+E	Вместо придаточного с союзом — короткий оборот с -ing, V3 или having + V3. У обеих частей одно подлежащее.	Instead of a clause with a conjunction — a short phrase with -ing, V3 or having + V3. Both parts share the same subject.
+E	Оборот	Clause
+E	Значит	Means
+E	одновременно / потому что	at the same time / because
+E	сначала одно, потом другое	first one thing, then another
+E	с ним что-то сделали	something was done to it
+E	отрицание	negative
+E	Правильно	Correct
+E	Ошибка	Mistake
+E	Walking down the street, a bear appeared. (медведь по улице не шёл)	Walking down the street, a bear appeared. (the bear wasn't walking down the street)
+E	Проверь: кто выполняет действие оборота? Это должно быть подлежащее главной части.	Check: who does the action of the clause? It must be the subject of the main part.
+E	Условные без if: Had I known, Should you…	Conditionals without if: Had I known, Should you…
+E	В деловой и официальной речи if убирают, а вспомогательный глагол ставят в начало.	In business and formal English, if is dropped and the auxiliary goes first.
+E	Без if	Without if
+E	Союз	Conjunction
+E	если не	if not
+E	при условии, что	on condition that
+E	если только, пока	only if, as long as
+E	иначе	otherwise
+E	на случай, если	just in case
+E	In case — «на всякий случай», заранее: Take an umbrella in case it rains. Это не «если».	In case means "as a precaution", in advance: Take an umbrella in case it rains. It doesn't mean "if".
+E	Сослагательное: I suggest he go, It is vital that…	The subjunctive: I suggest he go, It is vital that…
+E	После «предлагаю, требую, важно, чтобы…» в официальной речи глагол стоит в начальной форме — без -s и без времени.	After "suggest, demand, it's important that…" formal English uses the base form of the verb — no -s and no tense.
+E	В британской речи часто should: I suggest that he should take a break. Оба варианта верны.	British English often uses should: I suggest that he should take a break. Both are correct.
+E	Говорят, что…: He is said to, It is believed	Reporting: He is said to, It is believed
+E	Когда источник неважен или неизвестен: It is said that… или He is said to…	When the source doesn't matter or is unknown: It is said that… or He is said to…
+E	Конструкция	Structure
+E	S + is said to have + V3 (о прошлом)	S + is said to have + V3 (about the past)
+E	S + is thought to be + V-ing (сейчас)	S + is thought to be + V-ing (now)
+E	Модель	Pattern
+E	Будущее в прошедшем: was going to, would	The future in the past: was going to, would
+E	Рассказывая о прошлом, говорим о «будущем» с той точки зрения: was going to, would, was about to.	When telling a story about the past, we talk about the "future" from that point: was going to, would, was about to.
+E	собирался (часто не вышло)	intended to (often didn't happen)
+E	знал, что так будет	knew it would happen
+E	вот-вот собирался	was just about to
+E	планировалось, но не случилось	was planned but didn't happen
+E	Без повторов: so, not, one, do	Avoiding repetition: so, not, one, do
+E	Носители не повторяют слова: заменяют их на so, not, do, one или просто опускают.	Native speakers don't repeat words: they replace them with so, not, do, one or simply leave them out.
+E	Замена	Substitute
+E	to (без глагола)	to (without the verb)
+E	Не «I think yes», а I think so. Не «I hope no», а I hope not.	Not "I think yes", but I think so. Not "I hope no", but I hope not.
+E	Нереальное прошедшее: It's time, I'd rather, as if	The unreal past: It's time, I'd rather, as if
+E	Прошедшая форма иногда говорит о настоящем — когда что-то нереально или очень желательно.	A past form sometimes talks about the present — when something is unreal or strongly wished for.
+E	давно пора	it's high time
+E	я бы предпочёл, чтобы…	I'd prefer someone to…
+E	я бы лучше…	I'd prefer to…
+E	как будто (на самом деле нет)	as if (but not really)
+E	если бы только…	if only…
+E	Связки и смягчение: however, albeit, tend to	Linking and hedging: however, albeit, tend to
+E	На C1 важно связывать мысли и говорить мягко — без лишней категоричности.	At C1 it's important to link ideas and to sound soft — not overly categorical.
+E	Задача	Purpose
+E	Связки	Linking words
+E	противопоставить	contrast
+E	добавить	add
+E	причина и следствие	cause and effect
+E	уступка	concession
+E	although, even though, despite / in spite of + V-ing или сущ.	although, even though, despite / in spite of + V-ing or a noun
+E	Смягчить	Hedging
+E	despite + существительное или -ing: despite the rain, despite being tired. Не «despite of».	despite + a noun or -ing: despite the rain, despite being tired. Not "despite of".
+E	Уровень C1	Level C1
+E	уровня C1	level C1
+E	Переезд	Moving abroad
+E	причастные обороты, «говорят, что…», будущее в прошедшем	participle clauses, reporting, the future in the past
+E	Решение переехать	Deciding to move
+E	Виза и документы	Visas and paperwork
+E	Первые дни	The first days
+E	Работа за границей	Working abroad
+E	условные без if, сослагательное, связки	conditionals without if, the subjunctive, linking words
+E	Резюме и собеседование	Résumé and interview
+E	Офисная культура	Office culture
+E	Переговоры	Negotiations
+E	Жизнь в большом городе	Big-city life
+E	выделение, замены, нереальное прошедшее	cleft sentences, substitution, the unreal past
+E	Аренда жилья	Renting a place
+E	Соседи и сервис	Neighbours and services
+E	Транспорт и быт	Transport and everyday life
+E	Общение как у носителя	Talking like a native
+E	замены, идиомы, вежливый спор	substitution, idioms, polite arguing
+E	Юмор и ирония	Humour and irony
+E	Спорим вежливо	Arguing politely
+E	Учёба за границей	Studying abroad
+E	академический стиль	academic style
+E	Эссе и аргументы	Essays and arguments
+E	Презентация	Presentations
+E	Деньги, здоровье и право	Money, health and law
+E	сослагательное, условные без if, обороты	the subjunctive, conditionals without if, participle clauses
+E	Банк и налоги	Banks and taxes
+E	Страховка и медицина	Insurance and healthcare
+E	Права потребителя	Consumer rights
+E	Культура и медиа	Culture and media
+E	«говорят, что…», выделение, нереальное прошедшее	reporting, cleft sentences, the unreal past
+E	Новости и фейки	News and fake news
+E	Кино и сериалы	Films and TV series
+E	Свой человек	Fitting in
+E	всё вместе: уровень C1	everything together: level C1
+E	Адаптация и ностальгия	Adapting and nostalgia
+E	Планы на будущее	Plans for the future
+E	Твоя история	Your story
+E	Продвинутый	Advanced
+E	Сдай итоговую уровня C1	Pass the C1 final test
+E	Уровень B1 — разговорный	Level B1 — conversational
+E	Уровень C1 — свободно, как за границей	Level C1 — fluent, like living abroad
+E	Ученик может проходить любые уроки и тесты 5–11 класса и уровня C1 без контрольных.	The student can take any lessons and tests for grades 5–11 and level C1 without final tests.
+E	Английский с нуля до C1 — уровня, на котором свободно говоришь за границей. По школьной программе или в своём темпе.	English from zero to C1 — the level where you speak freely abroad. Following the school curriculum or at your own pace.
+E	Пойдёшь не по классам, а по ступеням: A1 → A2 → B1 → B2 → C1. Уже что-то знаешь — сдай контрольную ступени и иди дальше.	You'll go by stages, not school grades: A1 → A2 → B1 → B2 → C1. Already know something? Pass the stage test and move on.
+E	Это программа сайта: грамматика, слова, перевод, аудирование — до C1. Чтобы говорить свободно, добавь чтение книг и живую разговорную практику.	This is the site's programme: grammar, words, translation, listening — up to C1. To speak freely, add reading books and real speaking practice.
+E	Все темы от A1 до C1: схемы, линии времени, стрелки, примеры с озвучкой и тренировка по каждой теме.	Every topic from A1 to C1: diagrams, timelines, arrows, examples with audio and practice for each topic.
+E	Австралия	Australia
+E	Британия	UK
+E	США	US
+E	Индия	India
+E	Ирландия	Ireland
+E	Канада	Canada
+E	Новая Зеландия	New Zealand
+E	ЮАР	South Africa
+E	· живой	· natural
+E	would rather + V (о себе)	would rather + V (about yourself)
+E	Соцсети	Social media

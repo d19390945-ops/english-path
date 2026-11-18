@@ -33,7 +33,7 @@ const IDEA_DEFAULT = {
 
 // запасной вариант, если bot.json не скачался
 const DEFAULT: Config = {
-  menu: { text: 'Привет, {name}! Это <b>Your Road to the USA</b> 🇺🇸\nАнглийский с нуля до B2 — бесплатно.', buttons: [[{ text: '🇺🇸 Начать урок', open: true }]] },
+  menu: { text: 'Привет, {name}! Это <b>Your Road to the USA</b> 🇺🇸\nАнглийский с нуля до C1 — бесплатно.', buttons: [[{ text: '🇺🇸 Начать урок', open: true }]] },
   pages: {},
   commands: { '/start': 'menu', '/menu': 'menu', '/lesson': 'lesson' },
   lesson: { text: 'Открываю уроки 👇', buttons: [[{ text: '🇺🇸 Начать урок', open: true }]] },

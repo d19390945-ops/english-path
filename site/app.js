@@ -1828,12 +1828,15 @@ function openAvatar(tab = 'animal') {
 
 /* ---- обложка профиля ---- */
 const COVER_PH = () => PHOTOS.filter(p => ['america', 'city', 'travel', 'nature'].includes(p.c));
+// горизонтальные обложки — по умолчанию и первыми в выборе (вертикальные фото в широкой обложке смотрятся плохо)
+const COVERS = [['hollywood', 'Голливуд'], ['new-york', 'Нью-Йорк']];
+const coverFile = (id, thumb) => `photos/covers/${thumb ? 't/' : ''}${id}.webp`;
 function coverSrc() {
   const c = P.cover;
   if (c && c.img) return c.img;
+  if (c && c.cv) return coverFile(c.cv);
   if (c && c.id && PH.get(c.id)) return photoSrc(PH.get(c.id));
-  const cv = PHOTOS.length ? PHOTOS[strHash('cover' + P.nick + today()) % PHOTOS.length] : null;
-  return cv ? photoSrc(cv) : '';
+  return coverFile(COVERS[strHash('cover' + P.nick + today()) % COVERS.length][0]);
 }
 const coverStyle = () => { const c = P.cover || {}; return `object-position:50% ${c.y ?? 35}%;object-fit:${c.fit === 'contain' ? 'contain' : 'cover'}`; };
 function openCover() {
@@ -1847,13 +1850,17 @@ function openCover() {
       ${c.fit !== 'contain' ? `<label class="field cv-y"><span>Какую часть фото показать — двигай ползунок</span><input type="range" min="0" max="100" step="1" value="${c.y ?? 35}" data-y></label>` : ''}` : '<p class="muted small">Сейчас обложка меняется каждый день. Выбери своё фото — и его можно будет настроить.</p>'}
       <div class="row"><label class="btn btn-sm file-btn">${icon('image')}Загрузить своё фото<input type="file" accept="image/*" data-cv-file></label>
       ${c ? `<button type="button" class="btn btn-ghost btn-sm" data-cv="auto">${icon('repeat')}Новая каждый день</button>` : ''}</div>
-      <p class="sheet-k">Или выбери из коллекции</p>
+      <p class="sheet-k">Горизонтальные обложки</p>
+      <div class="cv-grid cv-wide">${COVERS.map(([id, t]) => `<button type="button" class="cv-tile ${c && c.cv === id ? 'sel' : ''}" data-cover="${id}" aria-label="${t}"><img src="${coverFile(id, true)}" alt="" loading="lazy"></button>`).join('')}</div>
+      <p class="sheet-k">Фото из коллекции</p>
       <div class="cv-grid">${list.map(p => `<button type="button" class="cv-tile ${c && c.id === p.id ? 'sel' : ''}" data-cv="${p.id}"><img src="${photoSrc(p, true)}" alt="" loading="lazy"></button>`).join('')}</div>`;
   };
   paint();
   sh.body.addEventListener('click', e => {
     const f = e.target.closest('[data-fit]');
     if (f) { P.cover = { ...P.cover, fit: f.dataset.fit }; save(); return paint(); }
+    const w = e.target.closest('[data-cover]');
+    if (w) { P.cover = { cv: w.dataset.cover, y: 50, fit: 'cover' }; save(); paint(); $('.sheet', sh.el).scrollTop = 0; return; }
     const b = e.target.closest('[data-cv]'); if (!b) return;
     P.cover = b.dataset.cv === 'auto' ? null : { id: b.dataset.cv, y: 50, fit: 'cover' }; save(); paint();
     $('.sheet', sh.el).scrollTop = 0;

@@ -363,3 +363,5 @@ E	ЮАР	South Africa
 E	· живой	· natural
 E	would rather + V (о себе)	would rather + V (about yourself)
 E	Соцсети	Social media
+E	Горизонтальные обложки	Wide covers
+E	Фото из коллекции	Photos from the collection

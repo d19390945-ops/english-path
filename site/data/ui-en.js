@@ -1263,7 +1263,9 @@ window.UI_EN = {
 "ЮАР": "South Africa",
 "· живой": "· natural",
 "would rather + V (о себе)": "would rather + V (about yourself)",
-"Соцсети": "Social media"
+"Соцсети": "Social media",
+"Горизонтальные обложки": "Wide covers",
+"Фото из коллекции": "Photos from the collection"
 },
 "pat": [
 [

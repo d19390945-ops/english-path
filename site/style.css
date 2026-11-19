@@ -1154,3 +1154,6 @@ html.in-tg.top-hide .top { transform: translateY(calc(-100% - var(--tg-safe-area
 
 html.in-tg .tg-full { position: fixed; z-index: 200; right: 16px; top: calc(12px + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); background: rgba(13,10,11,.85); color: #fff; font: 600 13px Onest, sans-serif; cursor: pointer; }
 html.in-tg .tg-full[hidden] { display: none; }
+
+.cv-grid.cv-wide { grid-template-columns: repeat(2, 1fr); }
+.cv-grid.cv-wide .cv-tile { aspect-ratio: 16 / 9; }

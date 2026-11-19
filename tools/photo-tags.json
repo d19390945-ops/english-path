@@ -6,10 +6,10 @@
   "c": "business"
  },
  "IMG000 (12).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG000 (13).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG000 (14).jpg": {
   "c": "study"
@@ -60,10 +60,10 @@
   "c": "business"
  },
  "IMG001 (12).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG001 (13).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG001 (14).jpg": {
   "c": "study"
@@ -97,10 +97,10 @@
   "c": "city"
  },
  "IMG001 (7).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG001 (8).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG001 (9).jpg": {
   "c": "study"
@@ -112,13 +112,13 @@
   "c": "business"
  },
  "IMG002 (11).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG002 (12).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG002 (13).jpg": {
-  "c": "study"
+  "c": "exclude"
  },
  "IMG002 (14).jpg": {
   "c": "city"
@@ -149,7 +149,7 @@
   "c": "business"
  },
  "IMG002 (7).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG002 (8).jpg": {
   "c": "study"
@@ -161,16 +161,16 @@
   "c": "america"
  },
  "IMG003 (10).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG003 (11).jpg": {
   "c": "exclude"
  },
  "IMG003 (12).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG003 (13).jpg": {
-  "c": "study"
+  "c": "exclude"
  },
  "IMG003 (14).jpg": {
   "c": "city"
@@ -202,7 +202,7 @@
   "c": "business"
  },
  "IMG003 (7).jpg": {
-  "c": "city"
+  "c": "exclude"
  },
  "IMG003 (8).jpg": {
   "c": "study"
@@ -220,10 +220,10 @@
   "c": "exclude"
  },
  "IMG004 (12).jpg": {
-  "c": "city"
+  "c": "exclude"
  },
  "IMG004 (13).jpg": {
-  "c": "study"
+  "c": "exclude"
  },
  "IMG004 (14).jpg": {
   "c": "city"
@@ -254,10 +254,10 @@
   "c": "business"
  },
  "IMG004 (7).jpg": {
-  "c": "city"
+  "c": "exclude"
  },
  "IMG004 (8).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG004 (9).jpg": {
   "c": "travel"
@@ -272,10 +272,10 @@
   "c": "exclude"
  },
  "IMG005 (12).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG005 (13).jpg": {
-  "c": "study"
+  "c": "exclude"
  },
  "IMG005 (14).jpg": {
   "c": "city"
@@ -297,16 +297,16 @@
   "c": "america"
  },
  "IMG005 (4).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG005 (5).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG005 (6).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG005 (7).jpg": {
-  "c": "city"
+  "c": "exclude"
  },
  "IMG005 (8).jpg": {
   "c": "study"
@@ -324,10 +324,10 @@
   "c": "business"
  },
  "IMG006 (12).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG006 (13).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG006 (14).jpg": {
   "c": "study"
@@ -358,7 +358,7 @@
   "c": "exclude"
  },
  "IMG006 (7).jpg": {
-  "c": "city"
+  "c": "exclude"
  },
  "IMG006 (8).jpg": {
   "c": "travel"
@@ -373,13 +373,13 @@
   "c": "city"
  },
  "IMG007 (11).jpg": {
-  "c": "travel"
+  "c": "exclude"
  },
  "IMG007 (12).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG007 (13).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG007 (14).jpg": {
   "c": "study"
@@ -401,7 +401,7 @@
   "c": "city"
  },
  "IMG007 (4).jpg": {
-  "c": "city"
+  "c": "exclude"
  },
  "IMG007 (5).jpg": {
   "c": "city"
@@ -410,7 +410,7 @@
   "c": "city"
  },
  "IMG007 (7).jpg": {
-  "c": "city"
+  "c": "exclude"
  },
  "IMG007 (8).jpg": {
   "c": "city"
@@ -428,10 +428,10 @@
   "c": "business"
  },
  "IMG008 (12).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG008 (13).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG008 (14).jpg": {
   "c": "study"
@@ -453,16 +453,16 @@
   "c": "america"
  },
  "IMG008 (4).jpg": {
-  "c": "city"
+  "c": "exclude"
  },
  "IMG008 (5).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG008 (6).jpg": {
   "c": "city"
  },
  "IMG008 (7).jpg": {
-  "c": "life"
+  "c": "exclude"
  },
  "IMG008 (8).jpg": {
   "c": "travel"
@@ -480,10 +480,10 @@
   "c": "business"
  },
  "IMG009 (12).jpg": {
-  "c": "travel"
+  "c": "exclude"
  },
  "IMG009 (13).jpg": {
-  "c": "nature"
+  "c": "exclude"
  },
  "IMG009 (14).jpg": {
   "c": "study"

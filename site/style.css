@@ -1148,9 +1148,13 @@ body[data-sec="auth"]::before { display: none; }
 html.in-tg body { padding-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); }
 html.in-tg .top { top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); }
 html.in-tg .player, html.in-tg .modal, html.in-tg .lb { padding-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); }
-/* в Telegram верхняя строка прячется при прокрутке вниз и возвращается при прокрутке вверх */
-html.in-tg .top { transition: transform 260ms cubic-bezier(.2,.8,.2,1); }
-html.in-tg.top-hide .top { transform: translateY(calc(-100% - var(--tg-safe-area-inset-top, 0px) - var(--tg-content-safe-area-inset-top, 0px) - 4px)); }
+/* в Telegram верхней строки нет совсем (у Telegram своя шапка), меню — внизу, как в приложении, на любой ширине */
+html.in-tg .top { display: none; }
+html.in-tg .main { padding-top: 16px; padding-bottom: calc(110px + var(--tg-safe-area-inset-bottom, 0px)); }
+html.in-tg .tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 6px calc(6px + env(safe-area-inset-bottom) + var(--tg-safe-area-inset-bottom, 0px)); justify-content: center; }
+html.in-tg .tabbar a { flex: 1; max-width: 180px; flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 11.5px; justify-content: center; border-radius: 10px; }
+html.in-tg .tabbar a.on { color: var(--hi); background: var(--hi-soft); }
+html.in-tg .tabbar .badge { position: absolute; top: 2px; right: calc(50% - 26px); }
 
 html.in-tg .tg-full { position: fixed; z-index: 200; right: 16px; top: calc(12px + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); background: rgba(13,10,11,.85); color: #fff; font: 600 13px Onest, sans-serif; cursor: pointer; }
 html.in-tg .tg-full[hidden] { display: none; }

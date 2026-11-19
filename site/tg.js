@@ -12,14 +12,7 @@
   if (at('6.1')) try { tg.setHeaderColor('#0D0A0B'); tg.setBackgroundColor('#0D0A0B'); } catch (e) {}
   if (at('7.10')) try { tg.setBottomBarColor('#0D0A0B'); } catch (e) {}
 
-  // верхняя строка: вниз — прячется, вверх — возвращается
-  var lastY = window.scrollY || 0, root = document.documentElement;
-  window.addEventListener('scroll', function () {
-    var y = window.scrollY || 0, d = y - lastY;
-    if (y < 80 || d < -6) root.classList.remove('top-hide');
-    else if (d > 6) root.classList.add('top-hide');
-    if (Math.abs(d) > 6 || y < 80) lastY = y;
-  }, { passive: true });
+  // верхней строки в Telegram нет — меню внизу (см. style.css, html.in-tg)
 
   // на компьютере Telegram открывает маленькое окно, как телефон, — просим полный экран
   var desk = !/^(android|android_x|ios)$/.test(tg.platform);
